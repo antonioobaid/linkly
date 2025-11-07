@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",                   // Modern Node-version
+    "module": "CommonJS",                 // Node standardmodul
+    "strict": true,                       // Strikt typkontroll
+    "esModuleInterop": true,              // Import av CommonJS-moduler
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,                 // Ignorera typer i node_modules
+    "outDir": "dist",                     // Kompilerade JS-filer
+    "resolveJsonModule": true,            // Importera .json om det behövs
+    "isolatedModules": true               // Säkerställer isolerad modul-kompilering
+  },
+  "include": ["./**/*.ts"],               // Alla TS-filer i server
+  "exclude": ["node_modules"]             // Exkludera node_modules
+}
