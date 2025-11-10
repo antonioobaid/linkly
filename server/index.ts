@@ -7,7 +7,14 @@ import { createClient } from "@supabase/supabase-js";
 dotenv.config();
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*" } });
+
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:3000",
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
 
 const supabase = createClient(
   process.env.SUPABASE_URL as string,
@@ -15,16 +22,21 @@ const supabase = createClient(
 );
 
 io.on("connection", (socket) => {
-  console.log("Ny användare ansluten:", socket.id);
+  console.log("📡 Ny användare ansluten:", socket.id);
 
   socket.on("send_message", async (data: { chatId: string; senderId: string; text: string }) => {
     const { chatId, senderId, text } = data;
-    await supabase.from("messages").insert([{ chat_id: chatId, sender_id: senderId, text }]);
-    io.emit("receive_message", data);
+    try {
+      await supabase.from("messages").insert([{ chat_id: chatId, sender_id: senderId, text }]);
+      socket.broadcast.emit("receive_message", data); // skicka till alla utom avsändaren
+      socket.emit("receive_message", data); // skicka till avsändaren
+    } catch (err) {
+      console.error("Fel vid sparande av meddelande:", err);
+    }
   });
 
   socket.on("disconnect", () => {
-    console.log("Användare kopplad från:", socket.id);
+    console.log("❌ Användare kopplad från:", socket.id);
   });
 });
 
