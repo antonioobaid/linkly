@@ -2,10 +2,23 @@ import express from "express";
 import http from "http";
 import { Server } from "socket.io";
 import dotenv from "dotenv";
-import { createClient } from "@supabase/supabase-js";
+import cors from "cors";
+
+import postsRouter from "./api/posts";
+import uploadsRouter from "./uploads";
+import { supabaseServer } from "./lib/supabaseServerClient";
 
 dotenv.config();
+
 const app = express();
+
+app.use(cors({ origin: "http://localhost:3000", credentials: true }));
+app.use(express.json());
+
+// Routes
+app.use("/api/posts", postsRouter);
+app.use("/api/uploads", uploadsRouter);
+
 const server = http.createServer(app);
 
 const io = new Server(server, {
@@ -16,20 +29,18 @@ const io = new Server(server, {
   },
 });
 
-const supabase = createClient(
-  process.env.SUPABASE_URL as string,
-  process.env.SUPABASE_SERVICE_ROLE_KEY as string
-);
-
 io.on("connection", (socket) => {
   console.log("📡 Ny användare ansluten:", socket.id);
 
   socket.on("send_message", async (data: { chatId: string; senderId: string; text: string }) => {
-    const { chatId, senderId, text } = data;
     try {
-      await supabase.from("messages").insert([{ chat_id: chatId, sender_id: senderId, text }]);
-      socket.broadcast.emit("receive_message", data); // skicka till alla utom avsändaren
-      socket.emit("receive_message", data); // skicka till avsändaren
+      await supabaseServer.from("messages").insert([{
+        chat_id: data.chatId,
+        sender_id: data.senderId,
+        text: data.text
+      }]);
+      socket.broadcast.emit("receive_message", data);
+      socket.emit("receive_message", data);
     } catch (err) {
       console.error("Fel vid sparande av meddelande:", err);
     }

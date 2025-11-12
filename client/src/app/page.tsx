@@ -1,107 +1,48 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { io, Socket } from "socket.io-client";
 import { useUser } from "@clerk/nextjs";
+import CreatePost from "./components/CreatePost";
+import PostFeed from "./components/PostFeed";
 
-type Message = {
-  chatId: string;
-  senderId: string;
-  text: string;
-};
+export default function HomePage() {
+  const { user, isLoaded } = useUser();
 
-let socket: Socket;
-
-export default function ChatPage() {
-  const { user } = useUser();
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState("");
-
-  useEffect(() => {
-    console.log("🔄 Försöker ansluta till Socket.io-server...");
-
-    socket = io("http://localhost:4000");
-
-    socket.on("connect", () => {
-      console.log("✅ Ansluten till servern:", socket.id);
-    });
-
-    socket.on("connect_error", (err) => {
-      console.error("❌ Socket.io-anslutningsfel:", err.message);
-    });
-
-    socket.on("receive_message", (message: Message) => {
-      console.log("📩 Mottaget meddelande från servern:", message);
-      setMessages((prev) => [...prev, message]);
-    });
-
-    return () => {
-      console.log("🔌 Kopplar från Socket.io...");
-      socket.disconnect();
-    };
-  }, []);
-
-  const sendMessage = async () => {
-    console.log("🚀 Försöker skicka meddelande...");
-
-    if (!user) {
-      console.warn("⚠️ Ingen användare inloggad!");
-    }
-
-    if (!newMessage.trim()) {
-      console.warn("⚠️ Inget meddelande skrivet!");
-      return;
-    }
-
-    console.log("📡 Socket connected?", socket?.connected);
-    console.log("👤 User ID:", user?.id);
-    console.log("💬 Text:", newMessage);
-
-    const messageData: Message = {
-      chatId: "general",
-      senderId: user?.id || "testuser",
-      text: newMessage,
-    };
-
-    try {
-      console.log("➡️ Skickar till servern:", messageData);
-      socket.emit("send_message", messageData);
-      setNewMessage("");
-    } catch (err) {
-      console.error("❌ Fel vid sändning:", err);
-    }
-  };
+  if (!isLoaded) return <p>Laddar...</p>;
 
   return (
-    <div className="p-4 max-w-md mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Linkly Chat</h1>
+    <div className="max-w-2xl mx-auto p-4">
+      <h1 className="text-3xl font-bold mb-6 text-center text-blue-600">
+        Välkommen till Linkly!
+      </h1>
 
-      <div className="border p-2 h-80 overflow-y-auto mb-4">
-        {messages.length === 0 && (
-          <p className="text-gray-500 text-sm">Inga meddelanden ännu...</p>
-        )}
-        {messages.map((msg, idx) => (
-          <div key={idx} className="mb-2">
-            <strong>{msg.senderId.substring(0, 6)}:</strong> {msg.text}
+      {user ? (
+        <>
+          <CreatePost userId={user.id} />
+          <PostFeed />
+        </>
+      ) : (
+        <div className="text-center space-y-4">
+          <p className="text-lg text-gray-700">
+            Utforska inlägg från andra användare och bli en del av vårt sociala nätverk!
+          </p>
+
+          <div className="border rounded-md p-4 bg-gray-50">
+            <p className="text-gray-500 italic mb-2">Exempel på inlägg:</p>
+            <div className="space-y-2">
+              <div className="border p-2 rounded bg-white shadow-sm">
+                <strong>Anna:</strong> Hej alla! Jag älskar Linkly 😄
+              </div>
+              <div className="border p-2 rounded bg-white shadow-sm">
+                <strong>Erik:</strong> Dela dina bilder och tankar här!
+              </div>
+            </div>
           </div>
-        ))}
-      </div>
 
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          className="border p-2 flex-1"
-          placeholder="Skriv ett meddelande..."
-        />
-        <button
-          onClick={sendMessage}
-          className="bg-blue-500 text-white px-4 py-2 rounded"
-        >
-          Skicka
-        </button>
-      </div>
+          <p className="text-gray-500 mt-4">
+            Logga in via navbaren för att skapa egna inlägg och chatta med andra.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
