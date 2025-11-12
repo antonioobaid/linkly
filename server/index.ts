@@ -6,6 +6,10 @@ import cors from "cors";
 
 import postsRouter from "./api/posts";
 import uploadsRouter from "./uploads";
+import commentsRouter from "./api/comments";
+import likesRouter from "./api/likes";
+
+
 import { supabaseServer } from "./lib/supabaseServerClient";
 
 dotenv.config();
@@ -18,6 +22,10 @@ app.use(express.json());
 // Routes
 app.use("/api/posts", postsRouter);
 app.use("/api/uploads", uploadsRouter);
+app.use("/api/comments", commentsRouter);
+app.use("/api/likes", likesRouter);
+
+
 
 const server = http.createServer(app);
 
