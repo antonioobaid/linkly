@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Comment } from "@/types/types";
+import { Comment} from "../../../../shared/types";
 
 export default function CommentSection({
   postId,
@@ -12,47 +12,176 @@ export default function CommentSection({
 }) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [text, setText] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
 
+  // ----------------------------------------------------
+  // HÄMTA KOMMENTARER
+  // ----------------------------------------------------
   const fetchComments = async () => {
-    const res = await fetch(`http://localhost:4000/api/comments/${postId}`);
-    const data = await res.json();
-    setComments(data);
+    try {
+      const res = await fetch(`http://localhost:4000/api/comments/${postId}`);
+      const data = await res.json();
+      setComments(data);
+    } catch (error) {
+      console.error("Fel vid hämtning av kommentarer:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // ----------------------------------------------------
+  // SKAPA KOMMENTAR
+  // ----------------------------------------------------
   const handleSubmit = async () => {
     if (!text.trim()) return;
 
-    const res = await fetch("http://localhost:4000/api/comments", {
-      method: "POST",
+    try {
+      const res = await fetch("http://localhost:4000/api/comments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          post_id: postId,
+          user_id: userId,
+          content: text,
+        }),
+      });
+
+      const newComment = await res.json();
+      setComments((prev) => [...prev, newComment]);
+      setText("");
+    } catch (error) {
+      console.error("Fel vid kommentar:", error);
+    }
+  };
+
+  const startEdit = (comment: Comment) => {
+    setEditId(comment.id);
+    setEditText(comment.content);
+    setOpenMenuId(null);
+  };
+
+  const saveEdit = async (id: string) => {
+    const res = await fetch(`http://localhost:4000/api/comments/${id}`, {
+      method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ post_id: postId, user_id: userId, text }),
+      body: JSON.stringify({ content: editText }),
     });
 
-    const newComment = await res.json();
-    console.log("Ny kommentar:", newComment);
+    const updated = await res.json();
 
-    setComments((prev) => [...prev, newComment]);
-    setText("");
+    setComments((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, content: updated.content } : c))
+    );
+
+    // avsluta editering
+    setEditId(null);
+    setEditText("");
+  };
+
+    // 🗑️ DELETE kommentar
+  const deleteComment = async (id: string) => {
+    try {
+      await fetch(`http://localhost:4000/api/comments/${id}`, {
+        method: "DELETE",
+      });
+
+      setComments((prev) => prev.filter((c) => c.id !== id));
+      setOpenMenuId(null);
+    } catch (err) {
+      console.error("Fel vid radering:", err);
+    }
   };
 
   useEffect(() => {
     fetchComments();
   }, [postId]);
 
+  // ----------------------------------------------------
+  // RENDERING
+  // ----------------------------------------------------
   return (
-    <div className="mt-3 border-t pt-3">
+     <div className="mt-3 border-t pt-3">
       <h3 className="text-sm font-semibold mb-2">Kommentarer:</h3>
 
-      {comments.length === 0 && (
+      {loading && <p className="text-gray-400 text-sm">Laddar...</p>}
+      {!loading && comments.length === 0 && (
         <p className="text-gray-400 text-sm">Inga kommentarer ännu...</p>
       )}
 
-      {comments.map((c) => (
-        <div key={c.id} className="text-sm mb-1">
-          <strong>{c.user_id.substring(0, 6)}:</strong> {c.text}
-        </div>
-      ))}
+      {/* Kommentarlista */}
+      {!loading &&
+        comments.map((c) => (
+          <div key={c.id} className="flex items-start justify-between mb-2">
+            <div className="text-sm w-full">
+              <strong>{c.username ?? "okänd"}:</strong>
 
+              {/* ✏️ EDIT MODE */}
+              {editId === c.id ? (
+                <div className="mt-1">
+                  <input
+                    type="text"
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    className="border p-1 rounded w-full text-sm"
+                  />
+                  <div className="flex gap-2 mt-1">
+                    <button
+                      onClick={() => saveEdit(c.id)}
+                      className="text-blue-600 font-semibold text-xs"
+                    >
+                      Spara
+                    </button>
+                    <button
+                      onClick={() => setEditId(null)}
+                      className="text-gray-500 text-xs"
+                    >
+                      Avbryt
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <span> {c.content}</span>
+              )}
+            </div>
+
+            {/* Meny ⋮ (bara för ägaren) */}
+            {c.user_id === userId && editId !== c.id && (
+              <div className="relative">
+                <button
+                  onClick={() =>
+                    setOpenMenuId(openMenuId === c.id ? null : c.id)
+                  }
+                  className="px-2 py-1 text-gray-500 hover:text-black"
+                >
+                  ⋮
+                </button>
+
+                {openMenuId === c.id && (
+                  <div className="absolute right-0 mt-1 bg-white border rounded shadow-md p-2 w-28 text-sm z-10">
+                    <button
+                      onClick={() => startEdit(c)}
+                      className="block w-full text-left text-blue-600 hover:underline mb-1"
+                    >
+                      Redigera
+                    </button>
+
+                    <button
+                      onClick={() => deleteComment(c.id)}
+                      className="block w-full text-left text-red-500 hover:underline"
+                    >
+                      Ta bort
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+
+      {/* Ny kommentar */}
       <div className="flex mt-2">
         <input
           type="text"

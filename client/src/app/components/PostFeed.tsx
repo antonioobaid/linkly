@@ -1,80 +1,34 @@
-/*"use client";
-
-import { Post } from "@/types/types";
-import { useEffect, useState } from "react";
-import { useUser } from "@clerk/nextjs";
-import CommentSection from "./CommentSection"; // 👈 Importera komponenten
-
-export default function PostFeed() {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const { user } = useUser();
-
-  useEffect(() => {
-    const fetchPosts = async () => {
-      const res = await fetch("http://localhost:4000/api/posts");
-      const data = await res.json();
-      console.log("Hämtade poster:", data);
-      setPosts(data);
-    };
-    fetchPosts();
-  }, []);
-
-  return (
-    <div className="mt-4 space-y-4">
-      {posts.map((post) => (
-        <div key={post.id} className="border p-4 rounded-md bg-white shadow-sm">
-          <p>{post.content}</p>
-
-          {post.image_url && (
-            <img
-              src={post.image_url}
-              alt=""
-              className="mt-2 max-h-64 w-full object-cover rounded"
-            />
-          )}
-
-          <p className="text-gray-400 text-sm mt-2">
-            {new Date(post.created_at).toLocaleString()}
-          </p>
-
-       
-          {user && <CommentSection postId={post.id} userId={user.id} />}
-        </div>
-      ))}
-    </div>
-  );
-}*/
-
-
 "use client";
 
 import { useEffect, useState } from "react";
-import { useUser } from "@clerk/nextjs";
+import Link from "next/link";
 import CommentSection from "./CommentSection";
-import { Post } from "@/types/types";
+import {  Post , User} from "../../../../shared/types";
 
-export default function PostFeed() {
+export default function PostFeed({ user }: { user: User | null }) {
   const [posts, setPosts] = useState<Post[]>([]);
-  const { user } = useUser();
   const [likes, setLikes] = useState<{ [key: string]: number }>({});
   const [userLiked, setUserLiked] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
     const fetchPosts = async () => {
-      const res = await fetch("http://localhost:4000/api/posts");
-      const data = await res.json();
-      setPosts(data);
+      try {
+        const res = await fetch("http://localhost:4000/api/posts");
+        const data: Post[] = await res.json();
+        setPosts(data);
 
-      // Hämta likes för varje post
-      data.forEach(async (post: Post) => {
-        const res = await fetch(`http://localhost:4000/api/likes/${post.id}`);
-        const likeData = await res.json();
-        setLikes((prev) => ({ ...prev, [post.id]: likeData.count }));
+        data.forEach(async (post: Post) => {
+          const res = await fetch(`http://localhost:4000/api/likes/${post.id}`);
+          const likeData = await res.json();
+          setLikes((prev) => ({ ...prev, [post.id]: likeData.count }));
 
-        if (user && likeData.users.includes(user.id)) {
-          setUserLiked((prev) => ({ ...prev, [post.id]: true }));
-        }
-      });
+          if (user && likeData.users.includes(user.id)) {
+            setUserLiked((prev) => ({ ...prev, [post.id]: true }));
+          }
+        });
+      } catch (err) {
+        console.error("Fel vid hämtning av posts:", err);
+      }
     };
     fetchPosts();
   }, [user]);
@@ -82,35 +36,48 @@ export default function PostFeed() {
   const handleLike = async (postId: string) => {
     if (!user) return alert("Du måste vara inloggad för att gilla!");
 
-    const res = await fetch("http://localhost:4000/api/likes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ post_id: postId, user_id: user.id }),
-    });
+    try {
+      const res = await fetch("http://localhost:4000/api/likes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ post_id: postId, user_id: user.id }),
+      });
 
-    const data = await res.json();
-    const liked = data.liked;
+      const data = await res.json();
+      const liked = data.liked;
 
-    setUserLiked((prev) => ({ ...prev, [postId]: liked }));
-    setLikes((prev) => ({
-      ...prev,
-      [postId]: prev[postId] + (liked ? 1 : -1),
-    }));
+      setUserLiked((prev) => ({ ...prev, [postId]: liked }));
+      setLikes((prev) => ({
+        ...prev,
+        [postId]: prev[postId] + (liked ? 1 : -1),
+      }));
+    } catch (err) {
+      console.error("Fel vid like:", err);
+    }
   };
 
   return (
     <div className="mt-4 space-y-4">
       {posts.map((post) => (
-        <div
-          key={post.id}
-          className="border p-4 rounded-md bg-white shadow-sm"
-        >
-          <p>{post.content}</p>
+        <div key={post.id} className="border p-4 rounded-md bg-white shadow-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <Link href={`/profile/${post.user_id}`} className="flex items-center gap-2">
+              <img
+                src={post.avatar_url || "/default-avatar.png"}
+                alt={post.username || "okänd"}
+                className="w-8 h-8 rounded-full object-cover"
+              />
+              <span className="font-semibold text-blue-600 hover:underline">
+                {post.username || "okänd"}
+              </span>
+            </Link>
+          </div>
 
+          <p>{post.content}</p>
           {post.image_url && (
             <img
               src={post.image_url}
-              alt=""
+              alt="post image"
               className="mt-2 max-h-64 w-full object-cover rounded"
             />
           )}
@@ -138,5 +105,3 @@ export default function PostFeed() {
     </div>
   );
 }
-
-

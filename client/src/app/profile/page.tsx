@@ -1,92 +1,139 @@
+// client/src/app/profile/page.tsx
 "use client";
 
-import { useUser, useClerk } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { User } from "@/types/types";
+import { useSupabaseUser } from "@/lib/useSupabaseUser";
+import { User, Post } from "../../../../shared/types";
 
-export default function Profile() {
-  const { user, isLoaded } = useUser();
-  const { signOut } = useClerk();
-  const [profileUser, setProfileUser] = useState<User | null>(null);
+export default function MyProfilePage() {
+  const { user, isLoaded } = useSupabaseUser();
+  const router = useRouter();
+
+  const [profile, setProfile] = useState<User | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isLoaded || !user) return;
+    const loadProfile = async () => {
+      if (!isLoaded) return;
 
-    // Säker konvertering till string för alla fält som kräver string
-    const profile: User = {
-      id: user.id,
-      username: (user.username as string) || (user.publicMetadata?.username as string) || "",
-      full_name: (user.fullName as string) || "",
-      avatar_url: (user.imageUrl as string) || "",
-      bio: (user.publicMetadata?.bio as string) || "",
-      created_at: user.createdAt ? user.createdAt.toISOString() : new Date().toISOString(),
+      if (!user) {
+        console.log("⛔ No user -> redirect to login");
+        router.push("/login");
+        return;
+      }
+
+      try {
+        console.log("🔍 Fetching profile for:", user.id);
+
+        const { data: userData, error: profileError } = await supabase
+          .from("users")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+
+        if (profileError) throw profileError;
+
+        console.log("✅ Profile loaded:", userData);
+
+        const { data: postData, error: postsError } = await supabase
+          .from("posts")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+
+        if (postsError) throw postsError;
+
+        console.log("📄 Posts loaded:", postData);
+
+        setProfile(userData as User);
+        setPosts(postData as Post[]);
+      } catch (err: any) {
+        console.error("❌ Error loading profile:", err);
+        alert("Fel: " + err.message);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    setProfileUser(profile);
+    loadProfile();
+  }, [isLoaded, user]);
 
-    const saveUser = async () => {
-      const { error } = await supabase
-        .from("users")
-        .upsert([
-          {
-            id: profile.id,
-            username: profile.username,
-            full_name: profile.full_name,
-            avatar_url: profile.avatar_url,
-            bio: profile.bio,
-            created_at: profile.created_at,
-          },
-        ]);
-      if (error) console.error("Supabase upsert error:", error.message);
-    };
+  if (!isLoaded || loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
-    saveUser();
-  }, [user, isLoaded]);
-
-  if (!isLoaded) return <p>Laddar användarinfo...</p>;
-  if (!user) return <p>Du är inte inloggad.</p>;
-  if (!profileUser) return <p>Laddar profil...</p>;
+  if (!profile) {
+    return <div className="p-6">Kunde inte hitta din profil.</div>;
+  }
 
   return (
-    <div className="p-6 max-w-md mx-auto mt-10 bg-white shadow-md rounded-lg">
-      <h1 className="text-2xl font-bold mb-4">Din profil</h1>
-
-      {profileUser.avatar_url && (
+    <div className="max-w-3xl mx-auto mt-8 p-6 bg-white rounded-lg shadow">
+      <div className="flex items-center gap-4">
         <img
-          src={profileUser.avatar_url}
-          alt={profileUser.full_name}
-          className="w-24 h-24 rounded-full mb-4"
+          src={profile.avatar_url || "/default-avatar.png"}
+          alt={profile.full_name || profile.username}
+          className="w-24 h-24 rounded-full object-cover"
         />
-      )}
 
-      <div className="mb-4">
-        <p>
-          <strong>Namn:</strong> {profileUser.full_name}
-        </p>
-        <p>
-          <strong>Användarnamn:</strong> {profileUser.username || "Inte satt"}
-        </p>
-        <p>
-          <strong>Bio:</strong> {profileUser.bio || "Ingen bio satt"}
-        </p>
-        <p>
-          <strong>UserID:</strong> {profileUser.id}
-        </p>
-        <p>
-          <strong>Skapad:</strong>{" "}
-          {new Date(profileUser.created_at).toLocaleDateString()}
-        </p>
+        <div>
+          <h1 className="text-2xl font-bold">
+            {profile.full_name || `${profile.first_name} ${profile.last_name}`}
+          </h1>
+
+          <p className="text-gray-500">@{profile.username}</p>
+
+          <p className="mt-2">
+            {profile.bio ? profile.bio : "Ingen bio ännu"}
+          </p>
+
+          <div className="mt-3">
+            <Link
+              href="/profile/edit"
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Redigera profil
+            </Link>
+          </div>
+        </div>
       </div>
 
-      <div>
-        <button
-          onClick={() => signOut()}
-          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-        >
-          Logga ut
-        </button>
-      </div>
+      {/* POSTS */}
+      <section className="mt-8">
+        <h2 className="text-lg font-semibold mb-3">Dina inlägg</h2>
+
+        {posts.length === 0 && (
+          <p className="text-gray-500">Du har inga inlägg ännu.</p>
+        )}
+
+        <div className="space-y-4">
+          {posts.map((p) => (
+            <div key={p.id} className="border p-4 rounded bg-gray-50">
+              <p>{p.content}</p>
+
+              {p.image_url && (
+                <img
+                  src={p.image_url}
+                  className="mt-2 w-full rounded"
+                  alt="post"
+                />
+              )}
+
+              <p className="text-xs text-gray-400 mt-2">
+                {new Date(p.created_at).toLocaleString()}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
+

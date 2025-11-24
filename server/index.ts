@@ -8,6 +8,7 @@ import postsRouter from "./api/posts";
 import uploadsRouter from "./uploads";
 import commentsRouter from "./api/comments";
 import likesRouter from "./api/likes";
+import avatarUploadRouter from "./api/avatarUpload";
 
 
 import { supabaseServer } from "./lib/supabaseServerClient";
@@ -24,6 +25,7 @@ app.use("/api/posts", postsRouter);
 app.use("/api/uploads", uploadsRouter);
 app.use("/api/comments", commentsRouter);
 app.use("/api/likes", likesRouter);
+app.use("/api/avatarUpload", avatarUploadRouter)
 
 
 
