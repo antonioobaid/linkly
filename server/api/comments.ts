@@ -40,7 +40,7 @@ router.get("/:postId", async (req, res) => {
       username: c.users?.username || null,
     }));
 
-    console.log("COMMENTS RESULT:", formatted);
+
 
     return res.status(200).json(formatted);
   } catch (error: any) {

@@ -9,6 +9,7 @@ import uploadsRouter from "./uploads";
 import commentsRouter from "./api/comments";
 import likesRouter from "./api/likes";
 import avatarUploadRouter from "./api/avatarUpload";
+import searchRouter from "./api/search";
 
 
 import { supabaseServer } from "./lib/supabaseServerClient";
@@ -26,6 +27,7 @@ app.use("/api/uploads", uploadsRouter);
 app.use("/api/comments", commentsRouter);
 app.use("/api/likes", likesRouter);
 app.use("/api/avatarUpload", avatarUploadRouter)
+app.use("/api/search", searchRouter);
 
 
 
