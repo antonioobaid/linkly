@@ -78,7 +78,7 @@ export default function Navbar() {
           <>
             <NavItem icon={<Home />} label="Home" href="/" />
             <NavItem icon={<Search />} label="Sök" href="/search" />
-            <NavItem icon={<MessageCircle />} label="Chat" href="/chat" />
+            <NavItem icon={<MessageCircle />} label="Chat" href="/inbox" />
             <NavItem href="/profile" avatarUrl={currentUser.avatar_url} label="Profil" />
             <button
               onClick={handleLogout}
@@ -111,7 +111,7 @@ export default function Navbar() {
           <>
             <IconOnly icon={<Home />} href="/" />
             <IconOnly icon={<Search />} href="/search" />
-            <IconOnly icon={<MessageCircle />} href="/chat" />
+            <IconOnly icon={<MessageCircle />} href="/inbox" />
             <IconOnly href="/profile" avatarUrl={currentUser.avatar_url} />
             <IconOnly
               icon={<X className="text-red-500 w-6 h-6" />}
@@ -130,7 +130,7 @@ export default function Navbar() {
           <>
             <IconOnly icon={<Home />} href="/" />
             <IconOnly icon={<Search />} href="/search" />
-            <IconOnly icon={<MessageCircle />} href="/chat" />
+            <IconOnly icon={<MessageCircle />} href="/inbox" />
             <IconOnly href="/profile" avatarUrl={currentUser.avatar_url} />
           </>
         )}

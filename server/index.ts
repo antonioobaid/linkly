@@ -4,6 +4,9 @@ import { Server } from "socket.io";
 import dotenv from "dotenv";
 import cors from "cors";
 
+import { supabaseServer } from "./lib/supabaseServerClient";
+
+
 import postsRouter from "./api/posts";
 import uploadsRouter from "./uploads";
 import commentsRouter from "./api/comments";
@@ -12,24 +15,20 @@ import avatarUploadRouter from "./api/avatarUpload";
 import searchRouter from "./api/search";
 
 
-import { supabaseServer } from "./lib/supabaseServerClient";
-
 dotenv.config();
 
 const app = express();
-
 app.use(cors({ origin: "http://localhost:3000", credentials: true }));
 app.use(express.json());
 
-// Routes
 app.use("/api/posts", postsRouter);
 app.use("/api/uploads", uploadsRouter);
 app.use("/api/comments", commentsRouter);
 app.use("/api/likes", likesRouter);
-app.use("/api/avatarUpload", avatarUploadRouter)
+app.use("/api/avatarUpload", avatarUploadRouter);
 app.use("/api/search", searchRouter);
 
-
+// Skapa HTTP-server
 
 const server = http.createServer(app);
 
@@ -41,22 +40,61 @@ const io = new Server(server, {
   },
 });
 
+
 io.on("connection", (socket) => {
   console.log("📡 Ny användare ansluten:", socket.id);
 
-  socket.on("send_message", async (data: { chatId: string; senderId: string; text: string }) => {
+  socket.on(
+  "send_message",
+  async (data: { sender_id: string; recipient_id: string; text: string }) => {
+    if (!data.sender_id || !data.recipient_id) return;
+
     try {
-      await supabaseServer.from("messages").insert([{
-        chat_id: data.chatId,
-        sender_id: data.senderId,
-        text: data.text
-      }]);
-      socket.broadcast.emit("receive_message", data);
-      socket.emit("receive_message", data);
+      // 1️⃣ Kolla om chat redan finns mellan två användare
+      const { data: existingChats, error: chatErr } = await supabaseServer
+        .from("chats")
+        .select("*")
+        .or(
+          `and(user1_id.eq.${data.sender_id},user2_id.eq.${data.recipient_id}),and(user1_id.eq.${data.recipient_id},user2_id.eq.${data.sender_id})`
+        )
+        .limit(1);
+
+      if (chatErr) throw chatErr;
+
+      let chatId: string;
+
+      if (existingChats && existingChats.length > 0) {
+        chatId = existingChats[0].id; // använd befintlig chat
+      } else {
+        // 2️⃣ Skapa ny chat
+        const { data: newChat, error: newChatErr } = await supabaseServer
+          .from("chats")
+          .insert([{ user1_id: data.sender_id, user2_id: data.recipient_id }])
+          .select()
+          .single();
+
+        if (newChatErr || !newChat) throw newChatErr || new Error("Kunde inte skapa chat");
+        chatId = newChat.id;
+      }
+
+      // 3️⃣ Spara meddelandet
+      const { data: savedMessage, error: msgError } = await supabaseServer
+        .from("messages")
+        .insert([{ chat_id: chatId, sender_id: data.sender_id, text: data.text }])
+        .select()
+        .single();
+
+      if (msgError || !savedMessage) throw msgError || new Error("Kunde inte spara meddelande");
+
+      // 4️⃣ Skicka meddelandet via Socket.IO
+      socket.emit("receive_message", savedMessage); // till avsändaren
+      socket.broadcast.emit("receive_message", savedMessage); // till mottagaren
     } catch (err) {
-      console.error("Fel vid sparande av meddelande:", err);
+      console.error("❌ Fel vid sparande:", err);
     }
-  });
+  }
+);
+
 
   socket.on("disconnect", () => {
     console.log("❌ Användare kopplad från:", socket.id);
@@ -65,3 +103,4 @@ io.on("connection", (socket) => {
 
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => console.log(`Servern körs på port ${PORT}`));
+
