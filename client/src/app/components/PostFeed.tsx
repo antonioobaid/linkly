@@ -57,7 +57,7 @@ export default function PostFeed({ user }: { user: User | null }) {
   };
 
   return (
-    <div className="mt-4 space-y-4">
+    <div className="mt-4 space-y-4 pb-24 md:pb-5">
       {posts.map((post) => (
         <div key={post.id} className="border p-4 rounded-md bg-white dark:bg-gray-800 shadow-sm">
           <div className="flex items-center gap-2 mb-2">

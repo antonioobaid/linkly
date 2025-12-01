@@ -13,39 +13,57 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Fel för varje fält
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const router = useRouter();
 
   const handleRegister = async () => {
-    console.log("🚀 Startar registreringsprocess...");
+    const newErrors: Record<string, string> = {};
 
-    if (!firstName || !lastName || !username || !email || !password) {
-      console.warn("⚠️ Alla fält måste fyllas i!");
-      return alert("Fyll i alla fält!");
-    }
+    // Validering
+    if (!firstName) newErrors.firstName = "Fyll i förnamn";
+    if (!lastName) newErrors.lastName = "Fyll i efternamn";
+    if (!username) newErrors.username = "Fyll i användarnamn";
+    if (!email) newErrors.email = "Fyll i email";
+    if (!password) newErrors.password = "Fyll i lösenord";
+    if (password !== confirmPassword) newErrors.confirmPassword = "Lösenorden matchar inte";
 
-    if (password !== confirmPassword) {
-      console.warn("⚠️ Lösenorden matchar inte!");
-      return alert("Lösenorden matchar inte!");
-    }
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
 
     setLoading(true);
 
     try {
-      // 1️⃣ Auth
-      console.log("📨 Skickar signUp request till Supabase Auth...");
+      // Kontrollera email
+      const { data: existingEmail } = await supabase
+        .from("users")
+        .select("id")
+        .eq("email", email)
+        .maybeSingle();
+      if (existingEmail) {
+        setErrors({ email: "Email används redan" });
+        return;
+      }
+
+      // Kontrollera username
+      const { data: existingUsername } = await supabase
+        .from("users")
+        .select("id")
+        .eq("username", username)
+        .maybeSingle();
+      if (existingUsername) {
+        setErrors({ username: "Användarnamnet är redan taget" });
+        return;
+      }
+
+      // Skapa användare i Supabase Auth
       const { data, error } = await supabase.auth.signUp({ email, password });
-      console.log("📩 SignUp Response:", data, error);
-
       if (error) throw error;
-
       const user = data.user;
-      console.log("👤 Auth User:", user);
-
       if (!user) throw new Error("Ingen användare skapad!");
 
-      // 2️⃣ Lägg in i users-tabellen
-      console.log("📤 Lägger till användare i users-tabellen...");
-
+      // Lägg in i users-tabellen
       const { error: insertError } = await supabase
         .from("users")
         .insert<UserInsert>([
@@ -59,71 +77,98 @@ export default function RegisterPage() {
             bio: null,
           },
         ]);
-
-      console.log("📥 Insert Response:", insertError || "OK");
-
       if (insertError) throw insertError;
 
-      console.log("🎉 Registrering komplett!");
-      alert("Registrering lyckades!");
-      router.push("/login");
+      router.push("/");
     } catch (err: any) {
-      console.error("❌ FEL:", err);
-      alert(err.message);
+      setErrors({ general: err.message || "Något gick fel vid registreringen" });
     } finally {
-      console.log("⏳ Avslutar registreringsprocess...");
       setLoading(false);
     }
   };
 
+  const inputClass = "w-full p-3 border rounded mb-2 dark:bg-gray-800 dark:border-gray-600";
+
   return (
-    <div className="max-w-md mx-auto mt-20 p-6 bg-white rounded-xl shadow-md border border-gray-200">
+    <div className="max-w-md mx-auto mt-20 p-8 bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
       <h1 className="text-3xl font-bold mb-6 text-center text-blue-600">Skapa konto</h1>
+
+      {errors.general && (
+        <p className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 rounded shadow flex items-center gap-2">
+          ⚠️ {errors.general}
+        </p>
+      )}
+
       <div className="grid grid-cols-2 gap-4 mb-4">
-        <input
-          placeholder="Förnamn"
-          value={firstName}
-          onChange={(e) => setFirstName(e.target.value)}
-          className="p-3 border rounded"
-        />
-        <input
-          placeholder="Efternamn"
-          value={lastName}
-          onChange={(e) => setLastName(e.target.value)}
-          className="p-3 border rounded"
-        />
+        <div>
+          <input
+            placeholder="Förnamn"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            className={inputClass}
+          />
+          {errors.firstName && <p className="text-red-600 text-sm mt-1">{errors.firstName}</p>}
+        </div>
+        <div>
+          <input
+            placeholder="Efternamn"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            className={inputClass}
+          />
+          {errors.lastName && <p className="text-red-600 text-sm mt-1">{errors.lastName}</p>}
+        </div>
       </div>
-      <input
-        placeholder="Användarnamn"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-        className="w-full p-3 border rounded mb-4"
-      />
-      <input
-        placeholder="Email"
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        className="w-full p-3 border rounded mb-4"
-      />
-      <input
-        placeholder="Lösenord"
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        className="w-full p-3 border rounded mb-4"
-      />
-      <input
-        placeholder="Bekräfta Lösenord"
-        type="password"
-        value={confirmPassword}
-        onChange={(e) => setConfirmPassword(e.target.value)}
-        className="w-full p-3 border rounded mb-4"
-      />
+
+      <div>
+        <input
+          placeholder="Användarnamn"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          className={inputClass}
+        />
+        {errors.username && <p className="text-red-600 text-sm mt-1">{errors.username}</p>}
+      </div>
+
+      <div>
+        <input
+          placeholder="Email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className={inputClass}
+        />
+        {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email}</p>}
+      </div>
+
+      <div>
+        <input
+          placeholder="Lösenord"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className={inputClass}
+        />
+        {errors.password && <p className="text-red-600 text-sm mt-1">{errors.password}</p>}
+      </div>
+
+      <div>
+        <input
+          placeholder="Bekräfta Lösenord"
+          type="password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          className={inputClass}
+        />
+        {errors.confirmPassword && (
+          <p className="text-red-600 text-sm mt-1">{errors.confirmPassword}</p>
+        )}
+      </div>
+
       <button
         onClick={handleRegister}
         disabled={loading}
-        className="w-full bg-blue-600 text-white py-3 rounded font-semibold hover:bg-blue-700 transition-colors"
+        className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 font-semibold mt-4"
       >
         {loading ? "Skapar konto..." : "Registrera"}
       </button>

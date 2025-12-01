@@ -4,8 +4,9 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="border-t bg-white dark:bg-gray-900 py-6 mt-10
-                       lg:pl-56 md:pl-20 px-4">
+    <footer className="border-t bg-white dark:bg-gray-900 p-6 m-3
+                   md:block hidden lg:pl-56 md:pl-20 px-4">
+                        
       <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center text-sm text-gray-600 dark:text-gray-300">
         {/* Vänster sida */}
         <p className="mb-3 sm:mb-0 text-center sm:text-left">

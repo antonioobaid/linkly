@@ -120,51 +120,69 @@ export default function ChatWindow() {
   if (!recipient) return <p>Laddar mottagare...</p>;
 
   return (
-    <div className="border p-2 rounded max-w-md mx-auto mt-6">
-      {/* Mottagare info */}
-      <div className="flex items-center gap-2 mb-3 p-2 border-b">
-        <img
-          src={recipient.avatar_url || "/default-avatar.png"}
-          alt={recipient.username}
-          className="w-10 h-10 rounded-full object-cover"
-        />
-        <h1 className="text-lg font-bold">{recipient.username}</h1>
-      </div>
-
-      {/* Meddelanden */}
-      <div className="h-64 overflow-y-auto flex flex-col gap-2 mb-2 border p-2 rounded">
-        {messages.map((msg, idx) => (
-          <div
-            key={idx}
-            className={`p-2 rounded ${
-              msg.sender_id === user.id
-                ? "bg-blue-200 self-end"
-                : "bg-gray-200 self-start"
-            }`}
-          >
-            <strong>{msg.sender_id === user.id ? "Du" : recipient.username}:</strong>{" "}
-            {msg.text}
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Skicka meddelande */}
-      <div className="flex gap-2">
-        <input
-          type="text"
-          className="flex-1 border px-2 py-1 rounded"
-          value={textInput}
-          onChange={(e) => setTextInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSend()}
-        />
-        <button
-          onClick={handleSend}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-        >
-          Skicka
-        </button>
-      </div>
+    <div
+    className={`
+      w-full
+      max-w-3xl
+      mx-auto
+      mt-24
+      lg:ml-56 lg:mt-6    /* desktop sidebar */
+      md:ml-20 md:mt-6     /* tablet sidebar */
+      md:pr-4
+      px-4
+      pb-24               /* för bottom nav på mobil */
+      flex flex-col gap-4
+    `}
+  >
+    {/* Mottagare info */}
+    <div className="flex items-center gap-3 p-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-xl shadow">
+      <img
+        src={recipient.avatar_url || "/default-avatar.png"}
+        alt={recipient.username}
+        className="w-12 h-12 rounded-full object-cover"
+      />
+      <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+        {recipient.username}
+      </h1>
     </div>
+
+    {/* Meddelanden */}
+    <div className="flex-1 h-96 sm:h-[28rem] overflow-y-auto p-3 bg-gray-50 dark:bg-gray-800 rounded-xl space-y-2 shadow-inner">
+      {messages.map((msg, idx) => (
+        <div
+          key={idx}
+          className={`p-3 rounded-xl max-w-xs sm:max-w-sm break-words ${
+            msg.sender_id === user.id
+              ? "bg-blue-500 text-white self-end rounded-br-none"
+              : "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 self-start rounded-bl-none"
+          }`}
+        >
+          <strong className="text-sm">
+            {msg.sender_id === user.id ? "Du" : recipient.username}:
+          </strong>{" "}
+          <span className="text-sm">{msg.text}</span>
+        </div>
+      ))}
+      <div ref={messagesEndRef} />
+    </div>
+
+    {/* Skicka meddelande */}
+    <div className="flex gap-2 mt-2">
+      <input
+        type="text"
+        className="flex-1 border border-gray-300 dark:border-gray-600 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:bg-gray-800 dark:text-white"
+        placeholder="Skriv ett meddelande..."
+        value={textInput}
+        onChange={(e) => setTextInput(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && handleSend()}
+      />
+      <button
+        onClick={handleSend}
+        className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-semibold shadow"
+      >
+        Skicka
+      </button>
+    </div>
+  </div>
   );
 }

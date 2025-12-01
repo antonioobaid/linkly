@@ -21,29 +21,30 @@ export default function Navbar() {
 
   // ===================== FETCH USER =====================
   useEffect(() => {
-    const fetchUser = async () => {
-      const { data: auth } = await supabase.auth.getUser();
-      if (!auth?.user?.id) {
-        setLoading(false);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("users")          // tabellnamnet som string!
-        .select("*")      // typ på returvärdet
-        .eq("id", auth.user.id)
-        .single();
-
-        const userData = data as User | null;
-
-        if (error) console.error(error);
-        setCurrentUser(userData);
-
+  // Lyssna på auth state changes
+  const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+    if (session?.user?.id) {
+      // Hämta användardata
+      supabase
+        .from("users")
+        .select("*")
+        .eq("id", session.user.id)
+        .single()
+        .then(({ data, error }) => {
+          if (error) console.error(error);
+          setCurrentUser(data as User);
+          setLoading(false);
+        });
+    } else {
+      setCurrentUser(null);
       setLoading(false);
-    };
+    }
+  });
 
-    fetchUser();
-  }, []);
+  return () => {
+    listener.subscription.unsubscribe();
+  };
+}, []);
 
   // ===================== LOGOUT =====================
   const handleLogout = async () => {

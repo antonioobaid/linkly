@@ -75,7 +75,7 @@ export default function MyProfilePage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto mt-8 p-6 bg-white rounded-lg shadow">
+    <div className="max-w-3xl mx-auto mt-12 p-6 bg-white rounded-lg shadow">
       <div className="flex items-center gap-4">
         <img
           src={profile.avatar_url || "/default-avatar.png"}

@@ -137,7 +137,7 @@ export default function EditProfilePage() {
   if (!profile) return <div className="p-6">Laddar profil...</div>;
 
   return (
-    <div className="max-w-2xl mx-auto mt-8 p-6 bg-white rounded shadow">
+    <div className="max-w-2xl mx-auto mt-12 p-6 bg-white rounded shadow">
       <h1 className="text-2xl font-bold mb-4">Redigera profil</h1>
 
       <div className="space-y-4">
