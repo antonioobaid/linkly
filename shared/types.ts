@@ -34,6 +34,10 @@ export interface Post {
   username?: string;
   full_name?: string;
   avatar_url?: string | null;
+
+  comments?: Comment[];
+  likes?: Like[];
+
 }
 
 export interface Comment {

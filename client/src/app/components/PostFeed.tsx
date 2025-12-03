@@ -5,7 +5,12 @@ import Link from "next/link";
 import CommentSection from "./CommentSection";
 import { Post, User } from "../../../../shared/types";
 
-export default function PostFeed({ user }: { user: User | null }) {
+interface PostFeedProps {
+  user: User | null;
+  userId?: string; // Om vi vill filtrera posts per användare
+}
+
+export default function PostFeed({ user, userId }: PostFeedProps) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [likes, setLikes] = useState<{ [key: string]: number }>({});
   const [userLiked, setUserLiked] = useState<{ [key: string]: boolean }>({});
@@ -13,16 +18,19 @@ export default function PostFeed({ user }: { user: User | null }) {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const res = await fetch("http://localhost:4000/api/posts");
+        const query = userId ? `?userId=${userId}` : "";
+        const res = await fetch(`http://localhost:4000/api/posts${query}`);
         const data: Post[] = await res.json();
         setPosts(data);
 
+        // Hämtar likes per post
         data.forEach(async (post: Post) => {
           const res = await fetch(`http://localhost:4000/api/likes/${post.id}`);
           const likeData = await res.json();
-          setLikes((prev) => ({ ...prev, [post.id]: likeData.count }));
 
-          if (user && likeData.users.includes(user.id)) {
+          setLikes((prev) => ({ ...prev, [post.id]: likeData.count || 0 }));
+
+          if (user && likeData.users?.includes(user.id)) {
             setUserLiked((prev) => ({ ...prev, [post.id]: true }));
           }
         });
@@ -30,8 +38,9 @@ export default function PostFeed({ user }: { user: User | null }) {
         console.error("Fel vid hämtning av posts:", err);
       }
     };
+
     fetchPosts();
-  }, [user]);
+  }, [user, userId]);
 
   const handleLike = async (postId: string) => {
     if (!user) return alert("Du måste vara inloggad för att gilla!");
@@ -59,7 +68,10 @@ export default function PostFeed({ user }: { user: User | null }) {
   return (
     <div className="mt-4 space-y-4 pb-24 md:pb-5">
       {posts.map((post) => (
-        <div key={post.id} className="border p-4 rounded-md bg-white dark:bg-gray-800 shadow-sm">
+        <div
+          key={post.id}
+          className="border p-4 rounded-md bg-white dark:bg-gray-800 shadow-sm"
+        >
           <div className="flex items-center gap-2 mb-2">
             <Link href={`/profile/${post.user_id}`} className="flex items-center gap-2">
               <img
@@ -106,4 +118,6 @@ export default function PostFeed({ user }: { user: User | null }) {
     </div>
   );
 }
+
+
 

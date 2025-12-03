@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { useSupabaseUser } from "@/lib/useSupabaseUser";
 import { User } from "../../../../../shared/types";
+import Image from "next/image";
+
 
 export default function EditProfilePage() {
   const { user, isLoaded } = useSupabaseUser();
@@ -108,7 +110,7 @@ export default function EditProfilePage() {
       // Update Supabase user profile
       const full_name =
         `${firstName} ${lastName}`.trim() === "" ? null : `${firstName} ${lastName}`;
-
+      
       const { error } = await supabase
         .from("users")
         .update({
@@ -124,9 +126,11 @@ export default function EditProfilePage() {
 
       alert("Profil uppdaterad!");
       router.push("/profile");
-    } catch (err: any) {
-      console.error("❌ Error updating profile:", err);
-      alert("Fel: " + err.message);
+    } catch (error) {
+      console.error("❌ Error updating profile:", error);
+      if (error instanceof Error) {
+        alert("Fel: " + error.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -146,9 +150,12 @@ export default function EditProfilePage() {
         <div>
           <label className="block text-sm font-medium">Profilbild</label>
           <div className="flex items-center gap-4 mt-2">
-            <img
+             <Image
               src={profile.avatar_url || "/default-avatar.png"}
-              className="w-16 h-16 rounded-full object-cover"
+              alt="Avatar"
+              width={64}
+              height={64}
+              className="rounded-full object-cover"
             />
             <input type="file" accept="image/*" onChange={handleAvatarChange} />
           </div>

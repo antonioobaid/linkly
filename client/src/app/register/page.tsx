@@ -5,6 +5,9 @@ import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import { UserInsert } from "../../../../shared/types";
 
+type FormErrors = Record<string, string>;
+type RegisterError = { message: string };
+
 export default function RegisterPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -14,12 +17,11 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Fel för varje fält
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<FormErrors>({});
   const router = useRouter();
 
   const handleRegister = async () => {
-    const newErrors: Record<string, string> = {};
+    const newErrors: FormErrors = {};
 
     // Validering
     if (!firstName) newErrors.firstName = "Fyll i förnamn";
@@ -41,6 +43,7 @@ export default function RegisterPage() {
         .select("id")
         .eq("email", email)
         .maybeSingle();
+
       if (existingEmail) {
         setErrors({ email: "Email används redan" });
         return;
@@ -52,6 +55,7 @@ export default function RegisterPage() {
         .select("id")
         .eq("username", username)
         .maybeSingle();
+
       if (existingUsername) {
         setErrors({ username: "Användarnamnet är redan taget" });
         return;
@@ -60,10 +64,11 @@ export default function RegisterPage() {
       // Skapa användare i Supabase Auth
       const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
-      const user = data.user;
-      if (!user) throw new Error("Ingen användare skapad!");
 
-      // Lägg in i users-tabellen
+      const user = data.user;
+      if (!user) throw { message: "Ingen användare skapad!" };
+
+      // Lägg in användaren i users-tabellen
       const { error: insertError } = await supabase
         .from("users")
         .insert<UserInsert>([
@@ -77,24 +82,29 @@ export default function RegisterPage() {
             bio: null,
           },
         ]);
+
       if (insertError) throw insertError;
 
       router.push("/");
-    } catch (err: any) {
-      setErrors({ general: err.message || "Något gick fel vid registreringen" });
+    } catch (err: unknown) {
+      const error = err as RegisterError;
+      setErrors({ general: error.message || "Något gick fel vid registreringen" });
     } finally {
       setLoading(false);
     }
   };
 
-  const inputClass = "w-full p-3 border rounded mb-2 dark:bg-gray-800 dark:border-gray-600";
+  const inputClass =
+    "w-full p-3 border rounded mb-2 dark:bg-gray-800 dark:border-gray-600";
 
   return (
     <div className="max-w-md mx-auto mt-20 p-8 bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
-      <h1 className="text-3xl font-bold mb-6 text-center text-blue-600">Skapa konto</h1>
+      <h1 className="text-3xl font-bold mb-6 text-center text-blue-600">
+        Skapa konto
+      </h1>
 
       {errors.general && (
-        <p className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 rounded shadow flex items-center gap-2">
+        <p className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 rounded shadow">
           ⚠️ {errors.general}
         </p>
       )}
@@ -107,8 +117,9 @@ export default function RegisterPage() {
             onChange={(e) => setFirstName(e.target.value)}
             className={inputClass}
           />
-          {errors.firstName && <p className="text-red-600 text-sm mt-1">{errors.firstName}</p>}
+          {errors.firstName && <p className="text-red-600 text-sm">{errors.firstName}</p>}
         </div>
+
         <div>
           <input
             placeholder="Efternamn"
@@ -116,7 +127,7 @@ export default function RegisterPage() {
             onChange={(e) => setLastName(e.target.value)}
             className={inputClass}
           />
-          {errors.lastName && <p className="text-red-600 text-sm mt-1">{errors.lastName}</p>}
+          {errors.lastName && <p className="text-red-600 text-sm">{errors.lastName}</p>}
         </div>
       </div>
 
@@ -127,7 +138,7 @@ export default function RegisterPage() {
           onChange={(e) => setUsername(e.target.value)}
           className={inputClass}
         />
-        {errors.username && <p className="text-red-600 text-sm mt-1">{errors.username}</p>}
+        {errors.username && <p className="text-red-600 text-sm">{errors.username}</p>}
       </div>
 
       <div>
@@ -138,7 +149,7 @@ export default function RegisterPage() {
           onChange={(e) => setEmail(e.target.value)}
           className={inputClass}
         />
-        {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email}</p>}
+        {errors.email && <p className="text-red-600 text-sm">{errors.email}</p>}
       </div>
 
       <div>
@@ -149,7 +160,7 @@ export default function RegisterPage() {
           onChange={(e) => setPassword(e.target.value)}
           className={inputClass}
         />
-        {errors.password && <p className="text-red-600 text-sm mt-1">{errors.password}</p>}
+        {errors.password && <p className="text-red-600 text-sm">{errors.password}</p>}
       </div>
 
       <div>
@@ -161,7 +172,7 @@ export default function RegisterPage() {
           className={inputClass}
         />
         {errors.confirmPassword && (
-          <p className="text-red-600 text-sm mt-1">{errors.confirmPassword}</p>
+          <p className="text-red-600 text-sm">{errors.confirmPassword}</p>
         )}
       </div>
 

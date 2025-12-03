@@ -20,9 +20,13 @@ interface PostWithUser {
 }
 
 // GET all posts with user info
+
+// GET all posts (optionally filtered by userId)
 router.get("/", async (req, res) => {
   try {
-    const { data, error } = await supabaseServer
+    const userId = req.query.userId as string | undefined;
+
+    let query = supabaseServer
       .from("posts")
       .select(`
         *,
@@ -34,9 +38,14 @@ router.get("/", async (req, res) => {
       `)
       .order("created_at", { ascending: false });
 
+    if (userId) {
+      query = query.eq("user_id", userId);
+    }
+
+    const { data, error } = await query;
+
     if (error) throw error;
 
-    // Typa data som PostWithUser[]
     const postsData = (data ?? []) as PostWithUser[];
 
     const formattedPosts: Post[] = postsData.map((post) => ({
