@@ -18,7 +18,9 @@ import searchRouter from "./api/search";
 dotenv.config();
 
 const app = express();
-app.use(cors({ origin: "http://localhost:3000", credentials: true }));
+const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
+app.use(cors({ origin: CLIENT_URL, credentials: true }));
+
 app.use(express.json());
 
 app.use("/api/posts", postsRouter);
@@ -28,13 +30,18 @@ app.use("/api/likes", likesRouter);
 app.use("/api/avatarUpload", avatarUploadRouter);
 app.use("/api/search", searchRouter);
 
+app.get("/healthz", (req, res) => {
+  res.status(200).send("OK");
+});
+
 // Skapa HTTP-server
 
 const server = http.createServer(app);
 
+
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: CLIENT_URL,
     methods: ["GET", "POST"],
     credentials: true,
   },
