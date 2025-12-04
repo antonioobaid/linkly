@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Comment} from "../../../../shared/types";
+import { API_URL } from "@/lib/api";
 
 export default function CommentSection({
   postId,
@@ -22,7 +23,7 @@ export default function CommentSection({
   // ----------------------------------------------------
   const fetchComments = async () => {
     try {
-      const res = await fetch(`http://localhost:4000/api/comments/${postId}`);
+      const res = await fetch(`${API_URL}/api/comments/${postId}`);
       const data = await res.json();
       setComments(data);
     } catch (error) {
@@ -39,7 +40,7 @@ export default function CommentSection({
     if (!text.trim()) return;
 
     try {
-      const res = await fetch("http://localhost:4000/api/comments", {
+      const res = await fetch(`${API_URL}/api/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -64,7 +65,7 @@ export default function CommentSection({
   };
 
   const saveEdit = async (id: string) => {
-    const res = await fetch(`http://localhost:4000/api/comments/${id}`, {
+    const res = await fetch(`${API_URL}/api/comments/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content: editText }),
@@ -84,7 +85,7 @@ export default function CommentSection({
     // 🗑️ DELETE kommentar
   const deleteComment = async (id: string) => {
     try {
-      await fetch(`http://localhost:4000/api/comments/${id}`, {
+      await fetch(`${API_URL}/api/comments/${id}`, {
         method: "DELETE",
       });
 

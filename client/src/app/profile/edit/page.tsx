@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useSupabaseUser } from "@/lib/useSupabaseUser";
 import { User } from "../../../../../shared/types";
 import Image from "next/image";
+import { API_URL } from "@/lib/api";
 
 
 export default function EditProfilePage() {
@@ -92,7 +93,7 @@ export default function EditProfilePage() {
         formData.append("file", avatarFile);
         formData.append("userId", user.id);
 
-        const res = await fetch("http://localhost:4000/api/avatarUpload", {
+        const res = await fetch(`${API_URL}/api/avatarUpload`, {
           method: "POST",
           body: formData,
         });

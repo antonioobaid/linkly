@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { User} from "../../../../shared/types";
+import { API_URL } from "@/lib/api";
 
 export interface SearchResult {
   users: User[];
@@ -31,7 +32,7 @@ export default function SearchPage() {
     setLoading(true);
 
     try {
-      const res = await fetch(`http://localhost:4000/api/search?q=${query}`);
+      const res = await fetch(`${API_URL}/api/search?q=${query}`);
       const data: SearchResult = await res.json();
       setResults(data);
     } catch (error) {
