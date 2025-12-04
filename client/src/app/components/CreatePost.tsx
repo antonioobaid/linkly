@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from "@/lib/api";
 import { useState } from "react";
 
 export default function CreatePost({ userId }: { userId: string }) {
@@ -13,7 +14,7 @@ export default function CreatePost({ userId }: { userId: string }) {
       const formData = new FormData();
       formData.append("file", imageFile);
 
-      const uploadRes = await fetch("http://localhost:4000/api/uploads", {
+      const uploadRes = await fetch(`${API_URL}/api/uploads`, {
         method: "POST",
         body: formData,
       });
@@ -27,7 +28,7 @@ export default function CreatePost({ userId }: { userId: string }) {
       imageUrl = uploadData.url;
     }
 
-    const res = await fetch("http://localhost:4000/api/posts", {
+    const res = await fetch(`${API_URL}/api/posts`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content, image_url: imageUrl, user_id: userId }),

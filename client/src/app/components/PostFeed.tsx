@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import CommentSection from "./CommentSection";
 import { Post, User } from "../../../../shared/types";
+import { API_URL } from "@/lib/api";
 
 interface PostFeedProps {
   user: User | null;
@@ -19,13 +20,13 @@ export default function PostFeed({ user, userId }: PostFeedProps) {
     const fetchPosts = async () => {
       try {
         const query = userId ? `?userId=${userId}` : "";
-        const res = await fetch(`http://localhost:4000/api/posts${query}`);
+        const res = await fetch(`${API_URL}/api/posts${query}`);
         const data: Post[] = await res.json();
         setPosts(data);
 
         // Hämtar likes per post
         data.forEach(async (post: Post) => {
-          const res = await fetch(`http://localhost:4000/api/likes/${post.id}`);
+          const res = await fetch(`${API_URL}/api/likes/${post.id}`);
           const likeData = await res.json();
 
           setLikes((prev) => ({ ...prev, [post.id]: likeData.count || 0 }));
@@ -46,7 +47,7 @@ export default function PostFeed({ user, userId }: PostFeedProps) {
     if (!user) return alert("Du måste vara inloggad för att gilla!");
 
     try {
-      const res = await fetch("http://localhost:4000/api/likes", {
+      const res = await fetch(`${API_URL}/api/likes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ post_id: postId, user_id: user.id }),
