@@ -18,8 +18,19 @@ import searchRouter from "./api/search";
 dotenv.config();
 
 const app = express();
-const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
-app.use(cors({ origin: CLIENT_URL, credentials: true }));
+
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://linkly-snowy.vercel.app",
+];
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  })
+);
+
 
 app.use(express.json());
 
@@ -41,7 +52,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: CLIENT_URL,
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true,
   },

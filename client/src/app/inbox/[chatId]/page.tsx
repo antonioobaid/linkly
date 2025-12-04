@@ -6,6 +6,7 @@ import { useSupabaseUser } from "@/lib/useSupabaseUser";
 import { supabase } from "@/lib/supabaseClient";
 import { Message, User } from "../../../../../shared/types";
 import { useParams } from "next/navigation";
+import { API_URL } from "@/lib/api";
 
 export default function ChatWindow() {
   const params = useParams();
@@ -71,7 +72,10 @@ export default function ChatWindow() {
   useEffect(() => {
     if (!isLoaded || !user) return;
 
-    const newSocket = io("http://localhost:4000");
+    
+    const newSocket = io(API_URL, {
+      transports: ["websocket"],
+    });
     setSocket(newSocket);
 
     newSocket.on("connect", () =>
