@@ -82,6 +82,11 @@ out
 .nuxt
 dist
 
+
+# Ignorera genererade JavaScript-filer från TypeScript
+**/*.js
+**/*.js.map
+
 # Gatsby files
 .cache/
 # Comment in the public line in if your project uses Gatsby and not Next.js
