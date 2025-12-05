@@ -11,6 +11,7 @@ import { Post } from "../../../shared/types";
 import Link from "next/link";
 import { API_URL } from "@/lib/api";
 
+
 export default function HomePage() {
   const { user, isLoaded } = useSupabaseUser();
   const router = useRouter();

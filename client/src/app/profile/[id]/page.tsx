@@ -5,19 +5,23 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
-import { User } from "../../../../../shared/types";
+import { User, Post } from "../../../../../shared/types";
 import PostFeed from "../../components/PostFeed";
-import { useSupabaseUser } from "@/lib/useSupabaseUser"; // <--- importera hook
+import { useSupabaseUser } from "@/lib/useSupabaseUser";
+import { API_URL } from "@/lib/api";
 
 export default function OtherProfilePage() {
-  const { user, isLoaded } = useSupabaseUser(); // <--- den inloggade användaren
+  const { user, isLoaded } = useSupabaseUser();
   const params = useParams();
   const router = useRouter();
   const id = params?.id as string | undefined;
 
   const [profile, setProfile] = useState<User | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingPosts, setLoadingPosts] = useState(true);
 
+  // Load profile data
   useEffect(() => {
     if (!id) {
       router.push("/");
@@ -43,6 +47,25 @@ export default function OtherProfilePage() {
 
     loadProfile();
   }, [id, router]);
+
+  // Load posts for this user
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchPosts = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/posts?userId=${id}`);
+        const data: Post[] = await res.json();
+        setPosts(data.reverse());
+      } catch (err) {
+        console.error("Error fetching posts:", err);
+      } finally {
+        setLoadingPosts(false);
+      }
+    };
+
+    fetchPosts();
+  }, [id]);
 
   if (!isLoaded || loading) {
     return (
@@ -81,7 +104,14 @@ export default function OtherProfilePage() {
       </div>
 
       <h2 className="text-lg font-semibold mt-6 mb-3">Inlägg</h2>
-      {id && <PostFeed user={user} userId={id} />} 
+
+      {loadingPosts ? (
+        <div className="flex justify-center py-6">
+          <div className="animate-spin h-10 w-10 border-b-2 border-blue-500 rounded-full"></div>
+        </div>
+      ) : (
+        <PostFeed user={user} posts={posts} />
+      )}
     </div>
   );
 }
