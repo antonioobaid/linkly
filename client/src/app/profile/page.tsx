@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+
 import { supabase } from "@/lib/supabaseClient";
 import { useSupabaseUser } from "@/lib/useSupabaseUser";
-import { User } from "../../../../shared/types";
-import Image from "next/image";
+import { API_URL } from "@/lib/api";
+import { User, Post } from "../../../../shared/types";
 import PostFeed from "../components/PostFeed";
 
 export default function MyProfilePage() {
@@ -14,8 +16,11 @@ export default function MyProfilePage() {
   const router = useRouter();
 
   const [profile, setProfile] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [loadingPosts, setLoadingPosts] = useState(true);
 
+  // Ladda profil
   useEffect(() => {
     const loadProfile = async () => {
       if (!isLoaded) return;
@@ -38,16 +43,35 @@ export default function MyProfilePage() {
       } catch (err) {
         console.error("❌ Error loading profile:", err);
       } finally {
-        setLoading(false);
+        setLoadingProfile(false);
       }
     };
 
     loadProfile();
   }, [isLoaded, user]);
 
-  if (!isLoaded || loading) {
+  // Ladda användarens posts
+  useEffect(() => {
+    const fetchUserPosts = async () => {
+      if (!user) return;
+
+      try {
+        const res = await fetch(`${API_URL}/api/posts?userId=${user.id}`);
+        const data: Post[] = await res.json();
+        setPosts(data.reverse()); // visa nyast först
+      } catch (err) {
+        console.error("❌ Fel vid hämtning av dina inlägg:", err);
+      } finally {
+        setLoadingPosts(false);
+      }
+    };
+
+    fetchUserPosts();
+  }, [user]);
+
+  if (!isLoaded || loadingProfile) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
+      <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
@@ -59,6 +83,7 @@ export default function MyProfilePage() {
 
   return (
     <div className="max-w-3xl mx-auto mt-12 p-6 bg-white rounded-lg shadow">
+      {/* Profilheader */}
       <div className="flex items-center gap-4">
         <Image
           src={profile.avatar_url || "/default-avatar.png"}
@@ -88,8 +113,18 @@ export default function MyProfilePage() {
         </div>
       </div>
 
+      {/* Dina inlägg */}
       <h2 className="text-lg font-semibold mt-8 mb-3">Dina inlägg</h2>
-      {user && <PostFeed user={user} userId={user.id} />}
+      {loadingPosts ? (
+        <div className="flex justify-center py-6">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+        </div>
+      ) : posts.length === 0 ? (
+        <p className="text-gray-500">Du har inga inlägg än.</p>
+      ) : (
+        <PostFeed user={user} posts={posts} />
+      )}
     </div>
   );
 }
+

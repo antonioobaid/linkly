@@ -1,16 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Comment} from "../../../../shared/types";
+import { Comment } from "../../../../shared/types";
 import { API_URL } from "@/lib/api";
+
+interface CommentSectionProps {
+  postId: string;
+  userId: string;
+  onCommentAdded?: () => void; // callback från PostFeed
+}
 
 export default function CommentSection({
   postId,
   userId,
-}: {
-  postId: string;
-  userId: string;
-}) {
+  onCommentAdded,
+}: CommentSectionProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
@@ -53,6 +57,9 @@ export default function CommentSection({
       const newComment = await res.json();
       setComments((prev) => [...prev, newComment]);
       setText("");
+
+      // ⚡ Uppdatera comment-count i PostFeed
+      if (onCommentAdded) onCommentAdded();
     } catch (error) {
       console.error("Fel vid kommentar:", error);
     }
@@ -77,12 +84,10 @@ export default function CommentSection({
       prev.map((c) => (c.id === id ? { ...c, content: updated.content } : c))
     );
 
-    // avsluta editering
     setEditId(null);
     setEditText("");
   };
 
-    // 🗑️ DELETE kommentar
   const deleteComment = async (id: string) => {
     try {
       await fetch(`${API_URL}/api/comments/${id}`, {
@@ -104,7 +109,7 @@ export default function CommentSection({
   // RENDERING
   // ----------------------------------------------------
   return (
-     <div className="mt-3 border-t pt-3">
+    <div className="mt-3 border-t pt-3">
       <h3 className="text-sm font-semibold mb-2">Kommentarer:</h3>
 
       {loading && <p className="text-gray-400 text-sm">Laddar...</p>}
@@ -112,14 +117,12 @@ export default function CommentSection({
         <p className="text-gray-400 text-sm">Inga kommentarer ännu...</p>
       )}
 
-      {/* Kommentarlista */}
       {!loading &&
         comments.map((c) => (
           <div key={c.id} className="flex items-start justify-between mb-2">
             <div className="text-sm w-full">
               <strong>{c.username ?? "okänd"}:</strong>
 
-              {/* ✏️ EDIT MODE */}
               {editId === c.id ? (
                 <div className="mt-1">
                   <input
@@ -148,7 +151,6 @@ export default function CommentSection({
               )}
             </div>
 
-            {/* Meny ⋮ (bara för ägaren) */}
             {c.user_id === userId && editId !== c.id && (
               <div className="relative">
                 <button
@@ -182,7 +184,6 @@ export default function CommentSection({
           </div>
         ))}
 
-      {/* Ny kommentar */}
       <div className="flex mt-2">
         <input
           type="text"
@@ -201,3 +202,7 @@ export default function CommentSection({
     </div>
   );
 }
+
+
+
+

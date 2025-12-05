@@ -27,7 +27,7 @@ export interface Post {
   id: string;
   user_id: string;
   content: string;
-  image_url?: string | null;
+  image_urls?: string[];
   created_at: string;
 
    // Från join med users, lagras inte i posts-tabellen

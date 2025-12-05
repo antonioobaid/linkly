@@ -10,7 +10,7 @@ interface PostWithUser {
   id: string;
   user_id: string;
   content: string;
-  image_url?: string | null;
+  image_urls?: string[]; 
   created_at: string;
   user?: {
     username?: string;
@@ -51,7 +51,7 @@ router.get("/", async (req, res) => {
     const formattedPosts: Post[] = postsData.map((post) => ({
       id: post.id,
       content: post.content,
-      image_url: post.image_url ?? null,
+      image_urls: post.image_urls ?? [],
       created_at: post.created_at,
       user_id: post.user_id,
       username: post.user?.username,
@@ -69,7 +69,7 @@ router.get("/", async (req, res) => {
 // POST create new post
 router.post("/", async (req, res) => {
   try {
-    const { content, image_url, user_id } = req.body;
+    const { content, image_urls, user_id } = req.body; // ✅ image_urls array
 
     if (!content || !user_id) {
       return res.status(400).json({ error: "Content och user_id krävs" });
@@ -79,14 +79,13 @@ router.post("/", async (req, res) => {
 
     const { data, error } = await supabaseServer
       .from("posts")
-      .insert([{ id, content, image_url, user_id }])
+      .insert([{ id, content, image_urls, user_id }]) // ✅ insert array
       .select();
 
     if (error || !data) throw error;
 
     const postRow = data[0];
 
-    // Hämta användarinfo
     const { data: userData, error: userError } = await supabaseServer
       .from("users")
       .select("username, full_name, avatar_url")
@@ -98,7 +97,7 @@ router.post("/", async (req, res) => {
     const newPost: Post = {
       id: postRow.id,
       content: postRow.content,
-      image_url: postRow.image_url ?? null,
+      image_urls: postRow.image_urls ?? [],
       created_at: postRow.created_at,
       user_id,
       username: userData.username,
@@ -112,5 +111,6 @@ router.post("/", async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 });
+
 
 export default router;

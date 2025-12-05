@@ -107,15 +107,7 @@ export default function ChatWindow() {
 
     socket.emit("send_message", messageToSend);
 
-    const localMessage: Message = {
-      id: "",
-      chat_id: safeChatId,
-      sender_id: user.id,
-      text: textInput.trim(),
-      created_at: new Date().toISOString(),
-    };
-
-    setMessages((prev) => [...prev, localMessage]);
+    
     setTextInput("");
   };
 
