@@ -26,7 +26,7 @@ export default function MyProfilePage() {
       if (!isLoaded) return;
 
       if (!user) {
-        router.push("/login");
+        router.push("/");
         return;
       }
 
