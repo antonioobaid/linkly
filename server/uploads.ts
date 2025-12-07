@@ -5,7 +5,9 @@ import { supabaseServer } from './lib/supabaseServerClient';
 const router = Router();
 const upload = multer(); // Memory storage
 
-// ✅ Byt från .single('file') till .array('files')
+const sanitizeFileName = (name: string) =>
+  name.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '');
+
 router.post('/', upload.array('files'), async (req, res) => {
   try {
     const files = req.files as Express.Multer.File[];
@@ -16,18 +18,24 @@ router.post('/', upload.array('files'), async (req, res) => {
     const uploadedUrls: string[] = [];
 
     for (const file of files) {
-      const fileName = `${Date.now()}_${file.originalname}`;
-      const { error } = await supabaseServer
-        .storage.from('post-images')
-        .upload(fileName, file.buffer, { contentType: file.mimetype });
+      const fileName = `${Date.now()}_${sanitizeFileName(file.originalname)}`;
 
-      if (error) return res.status(500).json({ error: error.message });
+      const { error: uploadError } = await supabaseServer
+        .storage
+        .from('post-images')
+        .upload(fileName, file.buffer, { contentType: file.mimetype, upsert: false });
 
-      const { data: publicData } = supabaseServer
-        .storage.from('post-images')
+      if (uploadError) {
+        console.error("Fel vid uppladdning:", uploadError);
+        return res.status(500).json({ error: uploadError.message });
+      }
+
+      const { data } = supabaseServer
+        .storage
+        .from('post-images')
         .getPublicUrl(fileName);
 
-      uploadedUrls.push(publicData.publicUrl);
+      uploadedUrls.push(data.publicUrl);
     }
 
     return res.status(200).json({ urls: uploadedUrls });
@@ -38,3 +46,4 @@ router.post('/', upload.array('files'), async (req, res) => {
 });
 
 export default router;
+

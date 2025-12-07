@@ -44,6 +44,9 @@ export default function HomePage() {
   const handleNewPost = (newPost: Post) => {
     setPosts(prev => [newPost, ...prev]);
   };
+  const handlePostDeleted = (postId: string) => {
+  setPosts((prev) => prev.filter((p) => p.id !== postId));
+};
 
   // 🔥 AVANCERAD LOGIN
   const handleLogin = async () => {
@@ -128,7 +131,7 @@ export default function HomePage() {
 
           <CreatePost userId={user.id} onPostCreated={handleNewPost} />
           <div className="mt-8">
-            <PostFeed user={user} posts={posts} />
+            <PostFeed user={user} posts={posts} onPostDeleted={handlePostDeleted} />
           </div>
         </motion.div>
       </div>

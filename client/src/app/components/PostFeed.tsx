@@ -9,14 +9,25 @@ import { Post, User } from "../../../../shared/types";
 interface PostFeedProps {
   user: User | null;
   userId?: string;
-  posts: Post[]; // posts kommer från HomePage
+  posts: Post[]; // posts kommer från parent
+  onPostDeleted?: (postId: string) => void;
+  onPostUpdated?: (updatedPost: Post) => void; // Parent ska uppdatera state
 }
 
-export default function PostFeed({ user, userId, posts }: PostFeedProps) {
+export default function PostFeed({ user, posts, onPostDeleted, onPostUpdated }: PostFeedProps) {
   const [likes, setLikes] = useState<{ [key: string]: number }>({});
   const [userLiked, setUserLiked] = useState<{ [key: string]: boolean }>({});
   const [commentCounts, setCommentCounts] = useState<{ [key: string]: number }>({});
   const [openComments, setOpenComments] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState<string | null>(null);
+
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState<string>("");
+
+  // ✨ Separera gamla och nya bilder vid redigering
+  const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [newImageFiles, setNewImageFiles] = useState<File[]>([]);
+  const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
 
   // Hämta likes + comment-count
   useEffect(() => {
@@ -56,24 +67,211 @@ export default function PostFeed({ user, userId, posts }: PostFeedProps) {
     }
   };
 
+  const handleDeletePost = async (postId: string) => {
+    if (!confirm("Vill du verkligen radera detta inlägg?")) return;
+    try {
+      const res = await fetch(`${API_URL}/api/posts/${postId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        onPostDeleted?.(postId);
+      }
+    } catch (err) {
+      console.error("Fel vid radering:", err);
+    }
+  };
+
+  // UPDATE POST (text + bilder)
+  const handleUpdatePost = async (postId: string) => {
+    if (!editingContent.trim() && existingImages.length === 0 && newImageFiles.length === 0) {
+      return alert("Innehållet kan inte vara tomt.");
+    }
+
+    try {
+      let uploadedUrls: string[] = [];
+
+      // Ladda upp nya bilder
+      if (newImageFiles.length > 0) {
+        const formData = new FormData();
+        newImageFiles.forEach(file => formData.append("files", file));
+
+        const uploadRes = await fetch(`${API_URL}/api/uploads`, {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!uploadRes.ok) throw new Error("Fel vid filuppladdning");
+
+        const uploadData = await uploadRes.json();
+        uploadedUrls = uploadData.urls;
+      }
+
+      // Kombinera gamla och nya bilder
+      const finalImageUrls = [...existingImages, ...uploadedUrls];
+
+      const res = await fetch(`${API_URL}/api/posts/${postId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: editingContent, image_urls: finalImageUrls }),
+      });
+
+      if (!res.ok) throw new Error("Kunde inte uppdatera posten");
+
+      const updatedPost: Post = await res.json();
+
+      // Skicka till parent så att state uppdateras
+      onPostUpdated?.(updatedPost);
+
+      // Rensa redigeringsstate
+      setEditingPostId(null);
+      setEditingContent("");
+      setExistingImages([]);
+      setNewImageFiles([]);
+      setNewImagePreviews([]);
+    } catch (err) {
+      console.error("Fel vid uppdatering:", err);
+    }
+  };
+
   const handleNewComment = (postId: string) => {
     setCommentCounts(prev => ({ ...prev, [postId]: (prev[postId] || 0) + 1 }));
+  };
+
+  const removeExistingImage = (url: string) => {
+    setExistingImages(prev => prev.filter(u => u !== url));
+  };
+
+  const removeNewImage = (index: number) => {
+    setNewImageFiles(prev => prev.filter((_, i) => i !== index));
+    setNewImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   return (
     <div className="mt-4 space-y-6 pb-24 md:pb-5">
       {posts.map(post => (
-        <div key={post.id} className="border p-4 rounded-md bg-white dark:bg-gray-800 shadow-sm">
-          <Link href={`/profile/${post.user_id}`} className="flex items-center gap-2 mb-2">
-            <img
-              src={post.avatar_url || "/default-avatar.png"}
-              alt={post.username || "okänd"}
-              className="w-8 h-8 rounded-full object-cover"
-            />
-            <span className="font-semibold text-blue-600 hover:underline">{post.username || "okänd"}</span>
-          </Link>
+        <div key={post.id} className="relative border p-4 rounded-md bg-white dark:bg-gray-800 shadow-sm">
 
-          <p className="text-gray-800 dark:text-gray-100">{post.content}</p>
+          {/* User info + 3-punkts meny */}
+          <div className="flex justify-between items-start mb-2">
+            <Link href={`/profile/${post.user_id}`} className="flex items-center gap-2">
+              <img
+                src={post.avatar_url || "/default-avatar.png"}
+                alt={post.username || "okänd"}
+                className="w-8 h-8 rounded-full object-cover"
+              />
+              <span className="font-semibold text-blue-600 hover:underline">{post.username || "okänd"}</span>
+            </Link>
+
+            {user?.id === post.user_id && (
+              <div className="relative">
+                <button
+                  onClick={() => setMenuOpen(menuOpen === post.id ? null : post.id)}
+                  className="text-xl px-2"
+                >
+                  ⋯
+                </button>
+
+                {menuOpen === post.id && (
+                  <div className="absolute right-0 mt-2 bg-white dark:bg-gray-700 shadow-lg rounded-md w-36 p-2 z-10">
+                    <button
+                      className="block w-full text-left p-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded"
+                      onClick={() => {
+                        setEditingPostId(post.id);
+                        setEditingContent(post.content);
+                        setExistingImages(post.image_urls || []);
+                        setNewImageFiles([]);
+                        setNewImagePreviews([]);
+                        setMenuOpen(null);
+                      }}
+                    >
+                      ✏️ Redigera
+                    </button>
+                    <button
+                      className="block w-full text-left p-2 hover:bg-red-100 dark:hover:bg-red-600 rounded text-red-600 dark:text-red-300"
+                      onClick={() => handleDeletePost(post.id)}
+                    >
+                      🗑️ Ta bort
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Post content */}
+          {editingPostId === post.id ? (
+            <div className="mt-2">
+              <textarea
+                value={editingContent}
+                onChange={(e) => setEditingContent(e.target.value)}
+                className="w-full border p-2 rounded dark:bg-gray-700 dark:text-white"
+                rows={3}
+              />
+
+              {/* Bildredigering */}
+              <div className="mt-2 flex gap-2 items-center">
+                <label className="cursor-pointer bg-gray-200 dark:bg-gray-700 px-3 py-1 rounded hover:bg-gray-300 dark:hover:bg-gray-600">
+                  Lägg till bilder
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      setNewImageFiles(prev => [...prev, ...files]);
+                      const urls = files.map(f => URL.createObjectURL(f));
+                      setNewImagePreviews(prev => [...prev, ...urls]);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              </div>
+
+              <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {existingImages.map((url, idx) => (
+                  <div key={idx} className="relative group">
+                    <img src={url} alt={`existing-${idx}`} className="w-full h-24 object-cover rounded border" />
+                    <button
+                      onClick={() => removeExistingImage(url)}
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+
+                {newImagePreviews.map((url, idx) => (
+                  <div key={idx} className="relative group">
+                    <img src={url} alt={`new-${idx}`} className="w-full h-24 object-cover rounded border" />
+                    <button
+                      onClick={() => removeNewImage(idx)}
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={() => handleUpdatePost(post.id)}
+                  className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
+                >
+                  Spara
+                </button>
+                <button
+                  onClick={() => setEditingPostId(null)}
+                  className="bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white px-3 py-1 rounded hover:bg-gray-400"
+                >
+                  Avbryt
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-gray-800 dark:text-gray-100">{post.content}</p>
+          )}
 
           {post.image_urls && post.image_urls.length > 0 && (
             <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -97,7 +295,9 @@ export default function PostFeed({ user, userId, posts }: PostFeedProps) {
             <button
               onClick={() => handleLike(post.id)}
               className={`flex items-center gap-1 px-3 py-1 rounded transition ${
-                userLiked[post.id] ? "bg-red-500 text-white" : "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+                userLiked[post.id]
+                  ? "bg-red-500 text-white"
+                  : "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
               }`}
             >
               ❤️ Gilla

@@ -112,5 +112,50 @@ router.post("/", async (req, res) => {
   }
 });
 
+// DELETE post by ID
+router.delete("/:id", async (req, res) => {
+  try {
+    const postId = req.params.id;
+
+    const { error } = await supabaseServer
+      .from("posts")
+      .delete()
+      .eq("id", postId); // ✅ ändrat från id till post_id
+
+    if (error) throw error;
+
+    return res.status(200).json({ message: "Post raderad" });
+  } catch (err: any) {
+    console.error("Fel vid radering av post:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+
+router.put("/:id", async (req, res) => {
+  try {
+    const postId = req.params.id;
+    const { content, image_urls } = req.body;
+
+    if (!content && (!image_urls || image_urls.length === 0)) 
+      return res.status(400).json({ error: "Innehåll eller bilder krävs" });
+
+    const { data, error } = await supabaseServer
+      .from("posts")
+      .update({ content, image_urls })
+      .eq("id", postId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return res.status(200).json(data);
+  } catch (err: any) {
+    console.error("Fel vid uppdatering av post:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+
+
 
 export default router;
