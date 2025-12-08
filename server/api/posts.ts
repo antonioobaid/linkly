@@ -112,6 +112,46 @@ router.post("/", async (req, res) => {
   }
 });
 
+// GET post by ID
+router.get("/:id", async (req, res) => {
+  try {
+    const postId = req.params.id;
+
+    const { data, error } = await supabaseServer
+      .from("posts")
+      .select(`
+        *,
+        user:users!user_id (
+          username,
+          full_name,
+          avatar_url
+        )
+      `)
+      .eq("id", postId)
+      .single();
+
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: "Post not found" });
+
+    const post: Post = {
+      id: data.id,
+      content: data.content,
+      image_urls: data.image_urls ?? [],
+      created_at: data.created_at,
+      user_id: data.user_id,
+      username: data.user?.username,
+      full_name: data.user?.full_name,
+      avatar_url: data.user?.avatar_url ?? null,
+    };
+
+    return res.status(200).json(post);
+  } catch (err: any) {
+    console.error("Fel vid hämtning av post:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+
 // DELETE post by ID
 router.delete("/:id", async (req, res) => {
   try {

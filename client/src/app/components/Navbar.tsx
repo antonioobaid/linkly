@@ -126,7 +126,8 @@ export default function Navbar() {
           MOBILE BOTTOM NAV
       ================================================= */}
       <div className="md:hidden fixed bottom-0 left-0 w-full bg-white dark:bg-black 
-                      border-t flex justify-around py-3 dark:text-white">
+                      border-t flex justify-around py-3 dark:text-white z-50 h-16
+                      ">
         {currentUser && (
           <>
             <IconOnly icon={<Home />} href="/" />
@@ -140,6 +141,7 @@ export default function Navbar() {
       {/* HEADER (Mobile) */}
       <div className="md:hidden w-full flex justify-between items-center px-4 py-3 
                       border-b bg-white dark:bg-black dark:text-white fixed top-0 left-0 z-50">
+                        
         <Link
           href="/"
           className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-purple-600 text-transparent bg-clip-text"
