@@ -124,13 +124,15 @@ server.listen(PORT, () => console.log(`Servern körs på port ${PORT}`));*/
 
 
 
+
 import express from "express";
 import http from "http";
 import { Server } from "socket.io";
 import dotenv from "dotenv";
 import cors from "cors";
-import { supabaseServer } from "./lib/supabaseServerClient";
 
+
+import { supabaseServer } from "./lib/supabaseServerClient";
 import postsRouter from "./api/posts";
 import uploadsRouter from "./uploads";
 import commentsRouter from "./api/comments";
@@ -164,6 +166,33 @@ app.use("/api/avatarUpload", avatarUploadRouter);
 app.use("/api/search", searchRouter);
 
 app.get("/healthz", (req, res) => res.status(200).send("OK"));
+
+// 🟦 OneSignal funktion
+async function sendPushNotification(userId: string, message: string) {
+  if (!process.env.ONESIGNAL_APP_ID || !process.env.ONESIGNAL_API_KEY) {
+    console.warn("⚠ OneSignal API-nycklar saknas. Notiser är avstängda.");
+    return;
+  }
+
+  try {
+    await fetch("https://onesignal.com/api/v1/notifications", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Basic ${process.env.ONESIGNAL_API_KEY}`,
+      },
+      body: JSON.stringify({
+        app_id: process.env.ONESIGNAL_APP_ID,
+        include_external_user_ids: [userId],
+        contents: { en: message },
+      }),
+    });
+
+    console.log("📨 Push skickad till:", userId);
+  } catch (err) {
+    console.error("❌ Misslyckades skicka push:", err);
+  }
+}
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -202,6 +231,10 @@ io.on("connection", (socket) => {
         .select()
         .single();
 
+      // 🟦 SKICKA PUSH-AVISERING
+      sendPushNotification(data.recipient_id, data.text);
+
+      // 🟦 SOCKET
       socket.emit("receive_message", savedMessage);
       socket.broadcast.emit("receive_message", savedMessage);
 
@@ -215,5 +248,3 @@ io.on("connection", (socket) => {
 
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => console.log(`Servern körs på port ${PORT}`));
-
-
