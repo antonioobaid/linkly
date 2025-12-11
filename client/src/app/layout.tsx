@@ -32,12 +32,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 
 
+
+
 import { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Footer from "./components/Footer";
 import NavbarWrapper from "./components/NavbarWrapper";
 import Script from "next/script";
+import ChatNotifications from "./components/ChatNotifications";
+import OneSignalClient from "./components/OneSignalClient"; // ✅ Importera OneSignalClient
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -57,7 +61,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="sv">
       <head>
-        {/* OneSignal SDK */}
         <Script
           src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
           strategy="afterInteractive"
@@ -75,20 +78,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   title: "Linkly",
                   message: "Tack för att du prenumererar!"
                 }
-              });
+              }); 
             });
           `}
         </Script>
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <NavbarWrapper />
+        <OneSignalClient /> {/* ✅ Lägg till OneSignalClient */}
+        <ChatNotifications /> {/* Aviseringar när sidan är öppen */}
         <main className="min-h-screen">{children}</main>
         <Footer />
       </body>
     </html>
   );
 }
-
-
-
-
