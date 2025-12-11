@@ -142,3 +142,9 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+
+
+# Allow OneSignal service workers
+!public/OneSignalSDKWorker.js
+!public/OneSignalSDKUpdaterWorker.js

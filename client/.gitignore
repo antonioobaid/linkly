@@ -40,3 +40,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+
+# Allow OneSignal service workers
+!public/OneSignalSDKWorker.js
+!public/OneSignalSDKUpdaterWorker.js
