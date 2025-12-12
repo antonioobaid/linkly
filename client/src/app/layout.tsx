@@ -32,7 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 
 
-
+/*
 
 import { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -85,11 +85,75 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <NavbarWrapper />
-        <OneSignalClient /> {/* ✅ Lägg till OneSignalClient */}
-        <ChatNotifications /> {/* Aviseringar när sidan är öppen */}
+        <OneSignalClient />
+        <ChatNotifications /
+        <main className="min-h-screen">{children}</main>
+        <Footer />
+      </body>
+    </html>
+  );
+}*/
+
+
+import { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+import Footer from "./components/Footer";
+import NavbarWrapper from "./components/NavbarWrapper";
+import Script from "next/script";
+import ChatNotifications from "./components/ChatNotifications";
+import OneSignalClient from "./components/OneSignalClient"; // subscription logic
+
+const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
+const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+
+export const metadata: Metadata = {
+  title: "Linkly",
+  description: "Social Network App",
+};
+
+declare global {
+  interface Window {
+    OneSignal?: any;
+  }
+}
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="sv">
+      <head>
+        {/* Ladda OneSignal SDK */}
+        <Script 
+          src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" 
+          strategy="afterInteractive" 
+        />
+
+        {/* Initiera OneSignal EN gång */}
+        <Script id="onesignal-init" strategy="afterInteractive">
+          {`
+            window.OneSignal = window.OneSignal || [];
+            OneSignal.push(function() {
+              OneSignal.init({
+                appId: "${process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID}",
+                allowLocalhostAsSecureOrigin: true,
+                notifyButton: { enable: true },
+                welcomeNotification: {
+                  title: "Linkly",
+                  message: "Tack för att du prenumererar!"
+                }
+              });
+            });
+          `}
+        </Script>
+      </head>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <NavbarWrapper />
+        <OneSignalClient /> {/* prenumeration + playerId-hantering */}
+        <ChatNotifications /> {/* toast-notiser för chat */}
         <main className="min-h-screen">{children}</main>
         <Footer />
       </body>
     </html>
   );
 }
+
