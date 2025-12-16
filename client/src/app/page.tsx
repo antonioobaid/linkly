@@ -119,6 +119,7 @@ export default function HomePage() {
   if (user)
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 lg:pl-56 md:pl-20 md:pt-4 sm:pt-4 pt-24 px-4 pb-24">
+        
         <motion.div
           className="max-w-2xl mx-auto"
           initial={{ opacity: 0, y: 20 }}

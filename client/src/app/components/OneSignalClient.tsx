@@ -14,14 +14,14 @@ export default function OneSignalClient() {
     window.OneSignal.push(async () => {
       const isSubscribed = await window.OneSignal.isPushNotificationsEnabled();
       const playerId = await window.OneSignal.getUserId();
+      console.log("📱 Mobile OneSignal playerId:", playerId); 
 
       if (playerId) {
         await supabase
           .from("users")
           .update({ onesignal_player_id: playerId })
           .eq("id", user.id);
-      }
-
+      } 
       window.OneSignal.on("subscriptionChange", async (isSubscribed: boolean) => {
         const newPlayerId = await window.OneSignal.getUserId();
         if (newPlayerId) {
@@ -36,3 +36,4 @@ export default function OneSignalClient() {
 
   return null;
 }
+

@@ -21,7 +21,8 @@ router.get("/:postId", async (req, res) => {
         content,
         created_at,
         users:user_id (
-          username
+          username,
+          avatar_url
         )
         `
       )
@@ -30,7 +31,7 @@ router.get("/:postId", async (req, res) => {
 
     if (error) throw error;
 
-    // Forma om resultatet: lägg username direkt på root-objektet
+    // Forma om resultatet: lägg username och avatar_url direkt på root-objektet
     const formatted = data.map((c: any) => ({
       id: c.id,
       post_id: c.post_id,
@@ -38,9 +39,8 @@ router.get("/:postId", async (req, res) => {
       content: c.content,
       created_at: c.created_at,
       username: c.users?.username || null,
+      avatar_url: c.users?.avatar_url || null,
     }));
-
-
 
     return res.status(200).json(formatted);
   } catch (error: any) {
@@ -48,6 +48,7 @@ router.get("/:postId", async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 });
+
 
 /* -------------------------------------------------------
    POST: Skapa kommentar + returnera username direkt

@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import CommentSection from "./CommentSection";
 import PostModal from "./PostModal";
-import EditPostModal from "./EditPostModal"; // Importera vår nya modal
+import EditPostModal from "./EditPostModal";
 import { API_URL } from "@/lib/api";
 import { Post, User } from "../../../../shared/types";
 
@@ -19,7 +18,6 @@ export default function PostFeed({ user, posts, onPostDeleted, onPostUpdated }: 
   const [likes, setLikes] = useState<{ [key: string]: number }>({});
   const [userLiked, setUserLiked] = useState<{ [key: string]: boolean }>({});
   const [commentCounts, setCommentCounts] = useState<{ [key: string]: number }>({});
-  const [openComments, setOpenComments] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
@@ -71,8 +69,9 @@ export default function PostFeed({ user, posts, onPostDeleted, onPostUpdated }: 
     }
   };
 
-  const handleNewComment = (postId: string) => {
-    setCommentCounts(prev => ({ ...prev, [postId]: (prev[postId] || 0) + 1 }));
+  // Callback som skickas till PostModal för att uppdatera commentCounts
+  const handleCommentChange = (postId: string, newCount: number) => {
+    setCommentCounts(prev => ({ ...prev, [postId]: newCount }));
   };
 
   return (
@@ -84,6 +83,7 @@ export default function PostFeed({ user, posts, onPostDeleted, onPostUpdated }: 
           onClick={() => setSelectedPostId(post.id)}
         >
           <div className="flex justify-between items-start mb-2">
+            {/* Avatar och username */}
             <Link
               href={post.user_id === user?.id ? "/profile" : `/profile/${post.user_id}`}
               className="flex items-center gap-2"
@@ -99,7 +99,7 @@ export default function PostFeed({ user, posts, onPostDeleted, onPostUpdated }: 
               </span>
             </Link>
 
-
+            {/* Edit/Delete menu */}
             {user?.id === post.user_id && (
               <div className="relative">
                 <button
@@ -125,6 +125,7 @@ export default function PostFeed({ user, posts, onPostDeleted, onPostUpdated }: 
 
           <p className="text-gray-800 dark:text-gray-100">{post.content}</p>
 
+          {/* Bilder */}
           {post.image_urls && post.image_urls.length > 0 && (
             <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
               {post.image_urls.map((url, index) => (
@@ -133,33 +134,42 @@ export default function PostFeed({ user, posts, onPostDeleted, onPostUpdated }: 
             </div>
           )}
 
-          <div className="flex gap-4 text-gray-500 text-sm mt-2 items-center">
-            <div>❤️ {likes[post.id] || 0}</div>
-            <div>💬 {commentCounts[post.id] || 0}</div>
-          </div>
-
-          <div className="flex gap-4 mt-3">
-            <button onClick={(e) => { e.stopPropagation(); handleLike(post.id); }}
-              className={`flex items-center gap-1 px-3 py-1 rounded transition ${userLiked[post.id] ? "bg-red-500 text-white" : "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"}`}
-            >❤️ Gilla</button>
-
-            <button onClick={(e) => { e.stopPropagation(); setOpenComments(openComments === post.id ? null : post.id); }}
-              className="flex items-center gap-1 px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
-            >💬 Kommentar</button>
-          </div>
-
-          {openComments === post.id && user && (
-            <div className="mt-3 border-t pt-3">
-              <CommentSection postId={post.id} userId={user.id} onCommentAdded={() => handleNewComment(post.id)} />
+          {/* Likes & Comments som klickbara ikoner */}
+          <div className="flex gap-6 text-gray-500 text-sm mt-2 items-center">
+            {/* Like */}
+            <div
+              className={`flex items-center gap-1 cursor-pointer select-none ${
+                userLiked[post.id] ? "text-red-500 font-semibold" : "hover:text-red-400"
+              }`}
+              onClick={(e) => { e.stopPropagation(); handleLike(post.id); }}
+            >
+              ❤️ {likes[post.id] || 0}
             </div>
-          )}
+
+            {/* Kommentar */}
+            <div
+              className="flex items-center gap-1 cursor-pointer hover:text-blue-600 select-none"
+              onClick={(e) => { e.stopPropagation(); setSelectedPostId(post.id); }}
+            >
+              💬 {commentCounts[post.id] || 0}
+            </div>
+          </div>
         </div>
       ))}
 
-      {/* Visa PostModal */}
       {selectedPostId && user && (
-        <PostModal postId={selectedPostId} user={user} onClose={() => setSelectedPostId(null)} />
+        <PostModal
+          postId={selectedPostId}
+          user={user}
+          onClose={() => setSelectedPostId(null)}
+          onCommentChange={handleCommentChange}
+          onLikeChange={(postId, newCount, likedByUser) => {
+            setLikes(prev => ({ ...prev, [postId]: newCount }));
+            setUserLiked(prev => ({ ...prev, [postId]: likedByUser }));
+          }}
+        />
       )}
+
 
       {/* Visa EditPostModal */}
       {editingPostId && (
@@ -172,3 +182,4 @@ export default function PostFeed({ user, posts, onPostDeleted, onPostUpdated }: 
     </div>
   );
 }
+

@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Comment } from "../../../../shared/types";
 import { API_URL } from "@/lib/api";
 
 interface CommentSectionProps {
   postId: string;
   userId: string;
-  onCommentAdded?: () => void; // callback från PostModal för att öka count
-  onCommentDeleted?: () => void; // callback från PostModal för att minska count
+  onCommentAdded: () => void; // callback för att uppdatera PostModal
+  onCommentDeleted?: () => void; // callback när en kommentar tas bort
+  onLikeChanged?: (liked: boolean, count: number) => void;
+  initialCommentCount?: number; // initialt antal kommentarer
 }
 
 export default function CommentSection({
@@ -16,172 +17,78 @@ export default function CommentSection({
   userId,
   onCommentAdded,
   onCommentDeleted,
+  onLikeChanged,
+  initialCommentCount = 0,
 }: CommentSectionProps) {
-  const [comments, setComments] = useState<Comment[]>([]);
   const [text, setText] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [editText, setEditText] = useState("");
+  const [likes, setLikes] = useState(0);
+  const [userLiked, setUserLiked] = useState(false);
+  const [commentCount, setCommentCount] = useState(initialCommentCount);
 
-  // Hämta kommentarer
-  const fetchComments = async () => {
+  const fetchLikes = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/comments/${postId}`);
+      const res = await fetch(`${API_URL}/api/likes/${postId}`);
       const data = await res.json();
-      setComments(data);
-    } catch (error) {
-      console.error("Fel vid hämtning av kommentarer:", error);
-    } finally {
-      setLoading(false);
+      setLikes(data.count || 0);
+      setUserLiked(data.users?.includes(userId) || false);
+    } catch (err) {
+      console.error("Fel vid hämtning av likes:", err);
     }
   };
 
   useEffect(() => {
-    fetchComments();
-  }, [postId]);
+    fetchLikes();
+  }, [postId, userId]);
 
-  // Lägg till kommentar
+  const handleLike = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/likes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ post_id: postId, user_id: userId }),
+      });
+      const data = await res.json();
+      setUserLiked(data.liked);
+      setLikes(prev => prev + (data.liked ? 1 : -1));
+      onLikeChanged?.(data.liked, likes + (data.liked ? 1 : -1));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!text.trim()) return;
-
     try {
       const res = await fetch(`${API_URL}/api/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          post_id: postId,
-          user_id: userId,
-          content: text,
-        }),
+        body: JSON.stringify({ post_id: postId, user_id: userId, content: text }),
       });
-
-      const newComment = await res.json();
-      setComments((prev) => [...prev, newComment]);
+      await res.json();
       setText("");
-
-      onCommentAdded?.();
-    } catch (error) {
-      console.error("Fel vid kommentar:", error);
-    }
-  };
-
-  // Redigera kommentar
-  const startEdit = (comment: Comment) => {
-    setEditId(comment.id);
-    setEditText(comment.content);
-    setOpenMenuId(null);
-  };
-
-  const saveEdit = async (id: string) => {
-    try {
-      const res = await fetch(`${API_URL}/api/comments/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: editText }),
-      });
-
-      const updated = await res.json();
-      setComments((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, content: updated.content } : c))
-      );
-
-      setEditId(null);
-      setEditText("");
+      setCommentCount(prev => prev + 1); // öka antalet direkt
+      onCommentAdded(); // låt PostModal uppdatera sin state
     } catch (err) {
-      console.error("Fel vid uppdatering:", err);
-    }
-  };
-
-  // Ta bort kommentar
-  const deleteComment = async (id: string) => {
-    try {
-      const res = await fetch(`${API_URL}/api/comments/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Kunde inte ta bort kommentar");
-
-      setComments((prev) => prev.filter((c) => c.id !== id));
-      setOpenMenuId(null);
-      onCommentDeleted?.();
-    } catch (err) {
-      console.error("Fel vid radering:", err);
+      console.error(err);
     }
   };
 
   return (
-    <div className="mt-3 border-t pt-3">
-      <h3 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">Kommentarer</h3>
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-4">
+        <button
+          onClick={handleLike}
+          className={`px-3 py-1 rounded text-sm ${
+            userLiked ? "bg-red-500 text-white" : "bg-gray-200 dark:bg-gray-700"
+          }`}
+        >
+          {userLiked ? "❤️" : "🤍"} {likes}
+        </button>
+        {/* Här visar vi bara antalet kommentarer */}
+        <span className="text-sm">💬 {commentCount}</span>
+      </div>
 
-      {loading && <p className="text-gray-400 text-sm">Laddar...</p>}
-      {!loading && comments.length === 0 && (
-        <p className="text-gray-400 text-sm">Inga kommentarer ännu...</p>
-      )}
-
-      {!loading &&
-        comments.map((c) => (
-          <div key={c.id} className="flex items-start justify-between mb-3">
-            <div className="text-sm w-full bg-gray-50 dark:bg-gray-800 p-2 rounded-lg">
-              <strong className="text-gray-800 dark:text-gray-200">{c.username ?? "okänd"}:</strong>{" "}
-              {editId === c.id ? (
-                <div className="mt-1 flex flex-col gap-1">
-                  <input
-                    type="text"
-                    value={editText}
-                    onChange={(e) => setEditText(e.target.value)}
-                    className="border p-1 rounded w-full text-sm dark:bg-gray-700 dark:text-white"
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => saveEdit(c.id)}
-                      className="text-blue-600 font-semibold text-xs hover:underline"
-                    >
-                      Spara
-                    </button>
-                    <button
-                      onClick={() => setEditId(null)}
-                      className="text-gray-500 text-xs hover:underline"
-                    >
-                      Avbryt
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <span>{c.content}</span>
-              )}
-            </div>
-
-            {c.user_id === userId && editId !== c.id && (
-              <div className="relative ml-2">
-                <button
-                  onClick={() =>
-                    setOpenMenuId(openMenuId === c.id ? null : c.id)
-                  }
-                  className="px-2 py-1 text-gray-500 hover:text-gray-900 dark:hover:text-white"
-                >
-                  ⋮
-                </button>
-
-                {openMenuId === c.id && (
-                  <div className="absolute right-0 mt-1 bg-white dark:bg-gray-700 border rounded shadow-md p-2 w-28 text-sm z-10">
-                    <button
-                      onClick={() => startEdit(c)}
-                      className="block w-full text-left text-blue-600 hover:underline mb-1"
-                    >
-                      Redigera
-                    </button>
-                    <button
-                      onClick={() => deleteComment(c.id)}
-                      className="block w-full text-left text-red-500 hover:underline"
-                    >
-                      Ta bort
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
-
-      <div className="flex mt-3 gap-2">
+      <div className="flex gap-2 mt-2">
         <input
           type="text"
           value={text}
@@ -199,8 +106,3 @@ export default function CommentSection({
     </div>
   );
 }
-
-
-
-
-
