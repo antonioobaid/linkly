@@ -118,20 +118,34 @@ export default function OtherProfilePage() {
 
   return (
     <>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 lg:pl-56 md:pl-20 pt-24 px-4 pb-20">
-        <div className="max-w-4xl mx-auto"> {/* Centrerar allt innehåll */}
+      <div
+        className="
+          min-h-screen
+          bg-gray-50
+          dark:bg-gray-900
+          lg:pl-56
+          md:pl-20
+          pt-16       /* < 640px */
+          sm:pt-16    /* ≥ 640px */
+          md:pt-10     /* ≥ 768px */
+          lg:pt-8      /* ≥ 1024px */
+          px-4
+          pb-20
+        "
+      >
+        <div className="max-w-4xl mx-auto">
+          {/* Back button – mobile */}
+          <div className="flex items-center mb-4 md:hidden">
+            <button
+              onClick={() => router.back()}
+              className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition"
+              aria-label="Tillbaka"
+            >
+              <ArrowLeft className="w-6 h-6 text-gray-800 dark:text-gray-100" />
+            </button>
+          </div>
 
-         <div className="flex items-center mb-4 md:hidden"> {/* Endast synlig på mobil */}
-          <button
-            onClick={() => router.back()}
-            className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition"
-            aria-label="Tillbaka"
-          >
-            <ArrowLeft className="w-6 h-6 text-gray-800 dark:text-gray-100" />
-          </button>
-        </div>
-
-          {/* Profile Header – profilbild vänster, info höger */}
+          {/* Profile header */}
           <div className="flex flex-row flex-wrap items-center gap-4 mb-6">
             <div
               className="w-28 h-28 relative cursor-pointer flex-shrink-0"
@@ -152,6 +166,7 @@ export default function OtherProfilePage() {
               <span className="text-gray-500 dark:text-gray-400 text-sm">
                 @{profile.username}
               </span>
+
               {profile.bio && (
                 <p className="mt-1 text-gray-600 dark:text-gray-300 max-w-md">
                   {profile.bio}
@@ -175,11 +190,11 @@ export default function OtherProfilePage() {
               <div className="animate-spin h-10 w-10 border-b-2 border-blue-500 rounded-full"></div>
             </div>
           ) : posts.length === 0 ? (
-            <p className="text-center text-gray-500 dark:text-gray-400">Inga inlägg ännu...</p>
+            <p className="text-center text-gray-500 dark:text-gray-400">
+              Inga inlägg ännu...
+            </p>
           ) : (
-            <div className="max-w-4xl mx-auto">
-              <PostFeed user={currentUser} posts={posts} />
-            </div>
+            <PostFeed user={currentUser} posts={posts} />
           )}
         </div>
       </div>

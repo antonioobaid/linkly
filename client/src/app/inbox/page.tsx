@@ -17,16 +17,12 @@ export default function InboxPage() {
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const router = useRouter();
 
-  // 🟢 Ta bort chat + meddelanden
   const deleteChat = async (chatId: string) => {
     const confirmDelete = confirm("Vill du verkligen ta bort denna konversation?");
     if (!confirmDelete) return;
-
     try {
       await supabase.from("messages").delete().eq("chat_id", chatId);
       await supabase.from("chats").delete().eq("id", chatId);
-
-      // Uppdatera UI
       setChats((prev) => prev.filter((c) => c.id !== chatId));
     } catch (error) {
       console.error(error);
@@ -34,7 +30,6 @@ export default function InboxPage() {
     }
   };
 
-  // 🟢 Hämta chattar och användare
   useEffect(() => {
     if (!isLoaded || !user) return;
 
@@ -88,30 +83,24 @@ export default function InboxPage() {
     fetchChats();
   }, [user, isLoaded]);
 
-  // 🟢 Sök användare
   useEffect(() => {
     if (!searchTerm.trim()) {
       setSearchResults([]);
       return;
     }
-
     const fetchUsers = async () => {
       const { data } = await supabase
         .from("users")
         .select("*")
         .or(`username.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%`)
         .neq("id", user?.id);
-
       setSearchResults(data || []);
     };
-
     fetchUsers();
   }, [searchTerm, user]);
 
-  // 🟢 Starta chat
   const startChat = async (otherUserId: string) => {
     if (!user) return;
-
     try {
       const { data: existingChats } = await supabase
         .from("chats")
@@ -142,7 +131,6 @@ export default function InboxPage() {
     }
   };
 
-  // 🟢 Tid formattering
   const timeAgo = (dateStr: string) => {
     const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
     if (diff < 60) return `${diff}s sedan`;
@@ -155,7 +143,16 @@ export default function InboxPage() {
   if (!user) return <p>Du är inte inloggad.</p>;
 
   return (
-    <div className="max-w-md mx-auto mt-12 p-4">
+    <div
+      className="
+        max-w-md mx-auto 
+        p-4 
+        pt-24        /* xs <640px */
+        sm:pt-20     /* small screens ≥640px */
+        md:pt-14     /* medium screens ≥768px */
+        lg:pt-8      /* large screens ≥1024px */
+      "
+    >
       <h1 className="text-2xl font-bold mb-4">Mina Chattar</h1>
 
       {/* 🔍 Sökfält */}
@@ -217,28 +214,23 @@ export default function InboxPage() {
             return (
               <div
                 key={chat.id}
-                className="relative flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-100 transition"
+                className="flex flex-col p-3 border rounded-lg hover:bg-gray-100 transition cursor-pointer"
+                onClick={() => router.push(`/inbox/${chat.id}`)}
               >
-                {/* Öppna chat */}
-                <div
-                  className="flex items-center gap-3 w-full cursor-pointer"
-                  onClick={() => router.push(`/inbox/${chat.id}`)}
-                >
+                <div className="flex items-center gap-3">
                   <Image
                     src={otherUser?.avatar_url || "/default-avatar.png"}
                     alt={otherUser?.full_name || ""}
-                    width={48}
-                    height={48}
-                    className="rounded-full object-cover"
+                    width={40}
+                    height={40}
+                    className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                   />
-                  <div className="flex flex-col w-full">
+                  <div className="flex-1 flex flex-col">
                     <div className="flex justify-between items-center">
                       <span className="font-semibold">{otherUser?.full_name}</span>
-
-                      {/* Här ligger tiden + delete-ikon i en rad */}
                       <div className="flex items-center gap-2">
                         {lastMessage && (
-                          <span className="text-gray-400 text-sm">
+                          <span className="text-gray-400 text-sm whitespace-nowrap">
                             {timeAgo(lastMessage.created_at)}
                           </span>
                         )}
@@ -248,15 +240,14 @@ export default function InboxPage() {
                             deleteChat(chat.id);
                           }}
                           className="text-red-500 hover:text-red-700 p-1 rounded"
-                          aria-label="Ta bort konversation"
                         >
                           <FiTrash2 size={18} />
                         </button>
                       </div>
                     </div>
                     {lastMessage && (
-                      <span className="text-gray-500 text-sm truncate">
-                        {lastMessageText}
+                      <span className="text-gray-500 text-sm truncate max-w-[150px]">
+                        {lastMessageText.split(" ").slice(0, 2).join(" ")}...
                       </span>
                     )}
                   </div>

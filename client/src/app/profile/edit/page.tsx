@@ -1,4 +1,3 @@
-// client/src/app/profile/edit/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -8,7 +7,6 @@ import { useSupabaseUser } from "@/lib/useSupabaseUser";
 import { User } from "../../../../../shared/types";
 import Image from "next/image";
 import { API_URL } from "@/lib/api";
-
 
 export default function EditProfilePage() {
   const { user, isLoaded } = useSupabaseUser();
@@ -60,7 +58,6 @@ export default function EditProfilePage() {
 
     if (!file) return;
 
-    // -- FRONTEND VALIDATION --
     const maxSize = 2 * 1024 * 1024; // 2 MB max
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
 
@@ -85,10 +82,7 @@ export default function EditProfilePage() {
     try {
       let avatar_url = profile?.avatar_url ?? null;
 
-      // Upload avatar via backend
       if (avatarFile) {
-        console.log("📤 Uploading avatar via backend...");
-
         const formData = new FormData();
         formData.append("file", avatarFile);
         formData.append("userId", user.id);
@@ -108,7 +102,6 @@ export default function EditProfilePage() {
         avatar_url = data.url;
       }
 
-      // Update Supabase user profile
       const full_name =
         `${firstName} ${lastName}`.trim() === "" ? null : `${firstName} ${lastName}`;
       
@@ -142,7 +135,17 @@ export default function EditProfilePage() {
   if (!profile) return <div className="p-6">Laddar profil...</div>;
 
   return (
-    <div className="max-w-2xl mx-auto mt-12 p-6 bg-white rounded shadow">
+    <div
+      className="
+        max-w-2xl mx-auto 
+        p-6 
+        pt-24        /* xs <640px */
+        sm:pt-24     /* small screens ≥640px */
+        md:pt-16     /* medium screens ≥768px */
+        lg:pt-10      /* large screens ≥1024px */
+        bg-white rounded shadow
+      "
+    >
       <h1 className="text-2xl font-bold mb-4">Redigera profil</h1>
 
       <div className="space-y-4">
@@ -151,7 +154,7 @@ export default function EditProfilePage() {
         <div>
           <label className="block text-sm font-medium">Profilbild</label>
           <div className="flex items-center gap-4 mt-2">
-             <Image
+            <Image
               src={profile.avatar_url || "/default-avatar.png"}
               alt="Avatar"
               width={64}

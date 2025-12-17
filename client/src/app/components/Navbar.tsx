@@ -188,11 +188,19 @@ function NavItem({ icon, label, href, avatarUrl }: NavItemProps) {
 }
 
 // Tablet / Mobile Icons only
+
 function IconOnly({ icon, href, avatarUrl, onClick }: NavItemProps & { onClick?: () => void }) {
-  // Om avatarUrl finns, visa den, annars visa icon (om finns)
-  const content = avatarUrl || href === "/profile" ? (
-    <div className="w-8 h-8 relative rounded-full overflow-hidden">
-      <Image src={getAvatarUrl(avatarUrl)} alt="Profil" fill className="object-cover" />
+  const size = 36; // storlek på cirkeln
+
+  const content = avatarUrl ? (
+    <div className="rounded-full overflow-hidden" style={{ width: size, height: size }}>
+      <Image
+        src={getAvatarUrl(avatarUrl)}
+        alt="Profil"
+        width={size}
+        height={size}
+        className="rounded-full object-cover"
+      />
     </div>
   ) : (
     <div className="w-6 h-6">{icon}</div>
@@ -202,7 +210,7 @@ function IconOnly({ icon, href, avatarUrl, onClick }: NavItemProps & { onClick?:
     return (
       <Link
         href={href}
-        className="flex flex-col items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl"
+        className="flex flex-col items-center justify-center"
       >
         {content}
       </Link>
@@ -212,7 +220,7 @@ function IconOnly({ icon, href, avatarUrl, onClick }: NavItemProps & { onClick?:
   return (
     <button
       onClick={onClick}
-      className="flex flex-col items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl"
+      className="flex flex-col items-center justify-center"
     >
       {content}
     </button>

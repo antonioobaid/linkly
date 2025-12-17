@@ -176,7 +176,11 @@ export default function PostFeed({ user, posts, onPostDeleted, onPostUpdated }: 
         <EditPostModal
           post={posts.find(p => p.id === editingPostId)!}
           onClose={() => setEditingPostId(null)}
-          onPostUpdated={onPostUpdated}
+          onPostUpdated={(updatedPost) => {
+          onPostUpdated?.(updatedPost); // skickar upp till HomePage
+          setEditingPostId(null);
+        }}
+
         />
       )}
     </div>

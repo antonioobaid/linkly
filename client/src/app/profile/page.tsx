@@ -87,17 +87,20 @@ export default function MyProfilePage() {
     <>
       {/* PAGE CONTAINER - samma stil som HomePage */}
       <div
-        className="
+       className="
           min-h-screen
-          bg-gray-50 
+          bg-gray-50
           dark:bg-gray-900
-          lg:pl-56 
+          pt-24       /* för xs <640px */
+          sm:pt-20    /* för small screens ≥640px */
+          md:pt-14    /* medium screens ≥768px */
+          lg:pt-8     /* large screens ≥1024px */
+          lg:pl-56
           md:pl-20
-          pt-24
           px-4
           pb-20
         "
-      >
+        >
         <div className="max-w-3xl mx-auto">
 
           {/* PROFIL HEADER */}

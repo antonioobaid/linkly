@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Search } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { User} from "../../../../shared/types";
+import { User } from "../../../../shared/types";
 import { API_URL } from "@/lib/api";
 
 export interface SearchResult {
@@ -15,7 +15,6 @@ export default function SearchPage() {
   const [query, setQuery] = useState<string>("");
   const [results, setResults] = useState<SearchResult>({ users: [] });
   const [loading, setLoading] = useState<boolean>(false);
-  
 
   useEffect(() => {
     if (!query.trim()) {
@@ -43,7 +42,16 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="max-w-xl mx-auto p-4 pt-6">
+    <div
+      className="
+        max-w-xl mx-auto 
+        px-4 pb-8 
+        pt-24       /* xs <640px */
+        sm:pt-24     /* small screens ≥640px */
+        md:pt-14     /* medium screens ≥768px */
+        lg:pt-8      /* large screens ≥1024px */
+      "
+    >
       <h1 className="text-2xl font-bold mb-4">🔍 Sök</h1>
 
       {/* Search bar */}

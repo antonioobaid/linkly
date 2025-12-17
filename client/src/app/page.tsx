@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -31,7 +29,7 @@ export default function HomePage() {
       try {
         const res = await fetch(`${API_URL}/api/posts`);
         const data: Post[] = await res.json();
-        setPosts(data.reverse());
+        setPosts(data);
       } catch (err) {
         console.error("Fel vid hämtning av posts:", err);
       } finally {
@@ -41,12 +39,35 @@ export default function HomePage() {
     fetchPosts();
   }, []);
 
-  const handleNewPost = (newPost: Post) => {
-    setPosts(prev => [newPost, ...prev]);
+  // Hjälp-funktion: hämta en post med full user-data
+  const fetchPostWithUser = async (postId: string): Promise<Post | null> => {
+    try {
+      const res = await fetch(`${API_URL}/api/posts/${postId}`);
+      if (!res.ok) throw new Error("Kunde inte hämta posten");
+      const data: Post = await res.json();
+      return data;
+    } catch (err) {
+      console.error(err);
+      return null;
+    }
   };
+
+  // Lägg till ny post
+  const handleNewPost = async (newPost: Post) => {
+    const fullPost = await fetchPostWithUser(newPost.id);
+    if (fullPost) setPosts(prev => [fullPost, ...prev]);
+  };
+
+  // Radera post
   const handlePostDeleted = (postId: string) => {
-  setPosts((prev) => prev.filter((p) => p.id !== postId));
-};
+    setPosts((prev) => prev.filter((p) => p.id !== postId));
+  };
+
+  // Uppdatera post live
+  const handlePostUpdated = async (updatedPost: Post) => {
+    const fullPost = await fetchPostWithUser(updatedPost.id);
+    if (fullPost) setPosts(prev => prev.map(p => p.id === fullPost.id ? fullPost : p));
+  };
 
   // 🔥 AVANCERAD LOGIN
   const handleLogin = async () => {
@@ -57,7 +78,6 @@ export default function HomePage() {
       return;
     }
 
-    // ✅ Enkel email-format validering
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setLoginError("Email ser inte korrekt ut.");
@@ -67,7 +87,6 @@ export default function HomePage() {
     setLoadingLogin(true);
 
     try {
-      // 🔹 Kolla om email finns i users-tabellen
       const { data: existingUser, error: userError } = await supabase
         .from("users")
         .select("id")
@@ -82,7 +101,6 @@ export default function HomePage() {
         return;
       }
 
-      // 🔹 Försök logga in
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -116,10 +134,23 @@ export default function HomePage() {
       </div>
     );
 
+  // 🔹 Inloggad användare
   if (user)
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 lg:pl-56 md:pl-20 md:pt-4 sm:pt-4 pt-24 px-4 pb-24">
-        
+      <div
+        className="
+          min-h-screen 
+          bg-gray-50 dark:bg-gray-900
+          pt-28        /* xs <640px */
+          sm:pt-24     /* small screens ≥640px */
+          md:pt-14     /* medium screens ≥768px */
+          lg:pt-8      /* large screens ≥1024px */
+          lg:pl-56 
+          md:pl-20
+          px-4
+          pb-24
+        "
+      >
         <motion.div
           className="max-w-2xl mx-auto"
           initial={{ opacity: 0, y: 20 }}
@@ -131,14 +162,20 @@ export default function HomePage() {
           </h1>
 
           <CreatePost userId={user.id} onPostCreated={handleNewPost} />
+
           <div className="mt-8">
-            <PostFeed user={user} posts={posts} onPostDeleted={handlePostDeleted} />
+            <PostFeed 
+              user={user} 
+              posts={posts} 
+              onPostDeleted={handlePostDeleted} 
+              onPostUpdated={handlePostUpdated} 
+            />
           </div>
         </motion.div>
       </div>
     );
 
-  // 🔥 LOGIN UI
+  // 🔹 Login UI för ej inloggad
   return (
     <div className="min-h-screen flex flex-col md:flex-row items-center justify-center px-6 bg-gray-50 dark:bg-gray-900">
       <motion.div
@@ -165,7 +202,6 @@ export default function HomePage() {
           Logga in
         </h2>
 
-        {/* 🔥 FELMEDDELANDE */}
         {loginError && (
           <p className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 rounded shadow">
             ⚠️ {loginError}
