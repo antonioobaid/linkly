@@ -1,27 +1,55 @@
 import { Router } from "express";
 import { supabaseServer } from "../lib/supabaseServerClient";
-const { v4: uuidv4 } = require('uuid');
+const { v4: uuidv4 } = require("uuid");
 
 const router = Router();
 
 /**
- * 🔹 GET /api/likes/:postId
- * Hämtar alla likes för en specifik post
+ * GET /api/likes/:postId
+ * Returnerar likes + user-info
  */
 router.get("/:postId", async (req, res) => {
   const { postId } = req.params;
 
   try {
-    const { data, error } = await supabaseServer
+    // 1️⃣ Hämta likes
+    const { data: likes, error: likesError } = await supabaseServer
       .from("likes")
-      .select("*")
+      .select("user_id")
       .eq("post_id", postId);
 
-    if (error) throw error;
+    if (likesError) throw likesError;
+
+    console.log("LIKES RAW:", likes);
+
+    if (!likes || likes.length === 0) {
+      return res.status(200).json({ count: 0, users: [] });
+    }
+
+    const userIds = likes.map((l) => l.user_id);
+
+    // 2️⃣ Hämta users
+    const { data: users, error: usersError } = await supabaseServer
+      .from("users")
+      .select("id, username, first_name, last_name, avatar_url")
+      .in("id", userIds);
+
+    if (usersError) throw usersError;
+
+    console.log("USERS FROM LIKES:", users);
+
+    const formattedUsers = users.map((u) => ({
+      id: u.id,
+      username: u.username,
+      avatar_url: u.avatar_url,
+      full_name: `${u.first_name} ${u.last_name}`,
+    }));
 
     return res.status(200).json({
-      count: data.length,
-      users: data.map((like) => like.user_id),
+      count: formattedUsers.length,
+      userIds: formattedUsers.map(u => u.id),
+      users: formattedUsers,
+
     });
   } catch (error: any) {
     console.error("Fel vid hämtning av likes:", error.message);
@@ -30,14 +58,12 @@ router.get("/:postId", async (req, res) => {
 });
 
 /**
- * 🔹 POST /api/likes
- * Gillar eller tar bort en like på en post
+ * POST /api/likes (toggle)
  */
 router.post("/", async (req, res) => {
   const { post_id, user_id } = req.body;
 
   try {
-    // Kontrollera om användaren redan gillat
     const { data: existingLike } = await supabaseServer
       .from("likes")
       .select("*")
@@ -46,7 +72,6 @@ router.post("/", async (req, res) => {
       .maybeSingle();
 
     if (existingLike) {
-      // ❌ Ta bort like om den redan finns (toggle)
       await supabaseServer
         .from("likes")
         .delete()
@@ -56,14 +81,10 @@ router.post("/", async (req, res) => {
       return res.status(200).json({ liked: false });
     }
 
-    // ✅ Annars skapa ny like
     const id = uuidv4();
-    const { data, error } = await supabaseServer
+    await supabaseServer
       .from("likes")
-      .insert([{ id, post_id, user_id }])
-      .select();
-
-    if (error) throw error;
+      .insert([{ id, post_id, user_id }]);
 
     return res.status(201).json({ liked: true });
   } catch (error: any) {
