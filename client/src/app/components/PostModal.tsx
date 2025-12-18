@@ -15,7 +15,13 @@ interface PostModalProps {
   onLikeChange?: (postId: string, newCount: number, likedByUser: boolean) => void;
 }
 
-export default function PostModal({ postId, user, onClose, onCommentChange, onLikeChange }: PostModalProps) {
+export default function PostModal({
+  postId,
+  user,
+  onClose,
+  onCommentChange,
+  onLikeChange,
+}: PostModalProps) {
   const router = useRouter();
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,10 +40,9 @@ export default function PostModal({ postId, user, onClose, onCommentChange, onLi
       const commentRes = await fetch(`${API_URL}/api/comments/${postId}`);
       const commentData: Comment[] = await commentRes.json();
 
-      setComments(commentData);
       setPost(postData);
-
-      if (onCommentChange) onCommentChange(postId, commentData.length);
+      setComments(commentData);
+      onCommentChange?.(postId, commentData.length);
     } catch (err) {
       console.error(err);
     } finally {
@@ -63,7 +68,9 @@ export default function PostModal({ postId, user, onClose, onCommentChange, onLi
         body: JSON.stringify({ content: editText }),
       });
       const updated = await res.json();
-      setComments(prev => prev.map(c => (c.id === id ? { ...c, content: updated.content } : c)));
+      setComments(prev =>
+        prev.map(c => (c.id === id ? { ...c, content: updated.content } : c))
+      );
       setEditId(null);
       setEditText("");
     } catch (err) {
@@ -73,13 +80,14 @@ export default function PostModal({ postId, user, onClose, onCommentChange, onLi
 
   const deleteComment = async (id: string) => {
     try {
-      const res = await fetch(`${API_URL}/api/comments/${id}`, { method: "DELETE" });
+      const res = await fetch(`${API_URL}/api/comments/${id}`, {
+        method: "DELETE",
+      });
       if (!res.ok) throw new Error("Kunde inte ta bort kommentar");
       const newComments = comments.filter(c => c.id !== id);
       setComments(newComments);
       setOpenMenuId(null);
-
-      if (onCommentChange) onCommentChange(postId, newComments.length);
+      onCommentChange?.(postId, newComments.length);
     } catch (err) {
       console.error(err);
     }
@@ -100,42 +108,75 @@ export default function PostModal({ postId, user, onClose, onCommentChange, onLi
     else router.push(`/profile/${userId}`);
   };
 
-  if (loading) return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
-      <div className="animate-spin h-12 w-12 border-b-2 border-white rounded-full" />
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+        <div className="animate-spin h-12 w-12 border-b-2 border-white rounded-full" />
+      </div>
+    );
+  }
 
   if (!post) return null;
 
   const images = post.image_urls ?? [];
+  const totalImages = images.length;
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-0 sm:p-4">
-      <button onClick={onClose} className="fixed top-4 right-4 z-50 bg-black/60 text-white w-10 h-10 rounded-full flex items-center justify-center text-2xl hover:bg-black">✕</button>
+      <button
+        onClick={onClose}
+        className="fixed top-4 right-4 z-50 bg-black/60 text-white w-10 h-10 rounded-full flex items-center justify-center text-2xl hover:bg-black"
+      >
+        ✕
+      </button>
 
-      <div className="bg-white dark:bg-gray-900 w-full h-full sm:h-[95vh] sm:max-w-5xl rounded-none sm:rounded-lg overflow-hidden flex flex-col lg:flex-row">
+      <div className="bg-white dark:bg-gray-900 w-full h-full sm:h-[95vh] sm:max-w-5xl overflow-hidden flex flex-col lg:flex-row">
 
-        {/* LEFT – IMAGE */}
-        <div className="lg:w-1/2 bg-black relative flex items-center justify-center">
+        {/* IMAGE SECTION – ENDAST MOBIL-HÖJD ÄNDRAD */}
+        <div
+          className="
+            relative
+            w-full
+            h-[45vh]
+            sm:h-[50vh]
+            lg:h-auto
+            lg:w-1/2
+            bg-black
+            flex
+            items-center
+            justify-center
+          "
+        >
           {images.length > 0 ? (
             <>
               <img
                 src={images[activeImage]}
                 alt={`post image ${activeImage + 1}`}
-                className="max-w-[1000px] w-full h-auto object-contain"
+                className="w-full h-full object-contain"
               />
-              {images.length > 1 && (
-                <>
-                  <button
-                    onClick={() => setActiveImage(prev => prev === 0 ? images.length - 1 : prev - 1)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/60 text-white text-3xl w-10 h-10 rounded-full flex items-center justify-center"
-                  >‹</button>
-                  <button
-                    onClick={() => setActiveImage(prev => prev === images.length - 1 ? 0 : prev + 1)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/60 text-white text-3xl w-10 h-10 rounded-full flex items-center justify-center"
-                  >›</button>
-                </>
+
+              {totalImages > 1 && (
+                <div className="absolute top-3 right-3 bg-black/70 text-white text-xs px-2 py-1 rounded-full">
+                  {activeImage + 1} / {totalImages}
+                </div>
+              )}
+
+              {activeImage > 0 && (
+                <button
+                  onClick={() => setActiveImage(prev => prev - 1)}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/60 text-white w-10 h-10 rounded-full flex items-center justify-center text-2xl"
+                >
+                  ‹
+                </button>
+              )}
+
+              {activeImage < totalImages - 1 && (
+                <button
+                  onClick={() => setActiveImage(prev => prev + 1)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/60 text-white w-10 h-10 rounded-full flex items-center justify-center text-2xl"
+                >
+                  ›
+                </button>
               )}
             </>
           ) : (
@@ -143,74 +184,102 @@ export default function PostModal({ postId, user, onClose, onCommentChange, onLi
           )}
         </div>
 
-        {/* RIGHT – CONTENT */}
+        {/* CONTENT */}
         <div className="lg:w-1/2 flex flex-col overflow-y-auto">
 
           {/* USER HEADER */}
           <div
-            className="flex items-center gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-700 cursor-pointer"
+            className="flex items-center gap-3 px-4 py-3 border-b cursor-pointer"
             onClick={() => goToProfile(post.user_id)}
           >
             <div className="relative w-10 h-10">
-              <Image src={post.avatar_url || "/default-avatar.png"} alt={post.username || "okänd"} fill sizes="40px" className="rounded-full object-cover" />
+              <Image
+                src={post.avatar_url || "/default-avatar.png"}
+                alt={post.username || "okänd"}
+                fill
+                sizes="40px"
+                className="rounded-full object-cover"
+              />
             </div>
-            <span className="font-semibold text-blue-600">{post.username || "okänd"}</span>
+            <span className="font-semibold text-blue-600">
+              {post.username}
+            </span>
           </div>
 
-          {/* KOMMENTARER LISTA */}
+          {/* POST CONTENT */}
+          {post.content && (
+            <div className="px-4 py-3 text-sm border-b dark:border-gray-700">
+              <strong className="mr-1">{post.username}</strong>
+              {post.content}
+            </div>
+          )}
+
+          {/* COMMENTS */}
           <div className="p-4 flex-1 overflow-y-auto">
             {comments.map(comment => (
               <div key={comment.id} className="flex items-start justify-between mb-3">
                 <div className="flex items-start gap-3 text-sm w-full bg-gray-50 dark:bg-gray-800 p-2 rounded-lg">
-
                   <div
                     className="relative w-8 h-8 cursor-pointer"
-                    onClick={e => { e.stopPropagation(); goToProfile(comment.user_id); }}
+                    onClick={e => {
+                      e.stopPropagation();
+                      goToProfile(comment.user_id);
+                    }}
                   >
-                    <Image src={comment.avatar_url || "/default-avatar.png"} alt={comment.username || "okänd"} fill sizes="32px" className="rounded-full object-cover" />
+                    <Image
+                      src={comment.avatar_url || "/default-avatar.png"}
+                      alt={comment.username || "okänd"}
+                      fill
+                      sizes="32px"
+                      className="rounded-full object-cover"
+                    />
                   </div>
 
                   <div
                     className="cursor-pointer"
-                    onClick={() => { if (editId !== comment.id) goToProfile(comment.user_id); }}
+                    onClick={() => {
+                      if (editId !== comment.id)
+                        goToProfile(comment.user_id);
+                    }}
                   >
-                    <strong className="text-gray-800 dark:text-gray-200">{comment.username || "okänd"}:</strong>{" "}
+                    <strong>{comment.username}:</strong>{" "}
                     {editId === comment.id ? (
-                      <div className="mt-1 flex flex-col gap-1" onClick={e => e.stopPropagation()}>
+                      <div onClick={e => e.stopPropagation()}>
                         <input
-                          type="text"
                           value={editText}
                           onChange={e => setEditText(e.target.value)}
-                          className="border p-1 rounded w-full text-sm dark:bg-gray-700 dark:text-white"
+                          className="border p-1 rounded text-sm"
                         />
-                        <div className="flex gap-2">
-                          <button
-                            onClick={e => { e.stopPropagation(); saveEdit(comment.id); }}
-                            className="text-blue-600 font-semibold text-xs hover:underline"
-                          >
-                            Spara
-                          </button>
-                          <button
-                            onClick={e => { e.stopPropagation(); setEditId(null); }}
-                            className="text-gray-500 text-xs hover:underline"
-                          >
-                            Avbryt
-                          </button>
+                        <div className="flex gap-2 mt-1">
+                          <button onClick={() => saveEdit(comment.id)}>Spara</button>
+                          <button onClick={() => setEditId(null)}>Avbryt</button>
                         </div>
                       </div>
                     ) : (
-                      <span>{comment.content}</span>
+                      comment.content
                     )}
                   </div>
                 </div>
 
                 {comment.user_id === user?.id && editId !== comment.id && (
-                  <div className="relative ml-2">
-                    <button onClick={() => setOpenMenuId(openMenuId === comment.id ? null : comment.id)} className="px-2 py-1 text-gray-500 hover:text-gray-900 dark:hover:text-white">⋮</button>
+                  <div className="relative">
+                    <button
+                      onClick={() =>
+                        setOpenMenuId(
+                          openMenuId === comment.id ? null : comment.id
+                        )
+                      }
+                    >
+                      ⋮
+                    </button>
                     {openMenuId === comment.id && (
-                      <div className="absolute right-0 mt-1 bg-white dark:bg-gray-700 border rounded shadow-md p-2 w-28 text-sm z-10">
-                        <button onClick={() => startEdit(comment)} className="block w-full text-left text-blue-600 hover:underline mb-1">Redigera</button>
-                        <button onClick={() => deleteComment(comment.id)} className="block w-full text-left text-red-500 hover:underline">Ta bort</button>
+                      <div className="absolute right-0 bg-white border rounded shadow p-2">
+                        <button onClick={() => startEdit(comment)}>
+                          Redigera
+                        </button>
+                        <button onClick={() => deleteComment(comment.id)}>
+                          Ta bort
+                        </button>
                       </div>
                     )}
                   </div>
@@ -219,15 +288,14 @@ export default function PostModal({ postId, user, onClose, onCommentChange, onLi
             ))}
           </div>
 
-          {/* COMMENTSECTION */}
+          {/* COMMENT SECTION */}
           {user && (
-            <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+            <div className="border-t p-4">
               <CommentSection
                 postId={post.id}
                 userId={user.id}
                 onCommentAdded={handleNewComment}
-           
-                onLikeChanged={handleLikeChange} // <-- här skickar vi likes tillbaka
+                onLikeChanged={handleLikeChange}
                 initialCommentCount={comments.length}
               />
             </div>
