@@ -12,6 +12,7 @@ import commentsRouter from "./api/comments";
 import likesRouter from "./api/likes";
 import avatarUploadRouter from "./api/avatarUpload";
 import searchRouter from "./api/search";
+import registerRouter from "./api/register";
 
 dotenv.config();
 
@@ -31,6 +32,7 @@ app.use(
 
 app.use(express.json());
 
+app.use("/api/register", registerRouter);
 app.use("/api/posts", postsRouter);
 app.use("/api/uploads", uploadsRouter);
 app.use("/api/comments", commentsRouter);

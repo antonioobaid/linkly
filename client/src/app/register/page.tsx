@@ -189,7 +189,6 @@ export default function RegisterPage() {
 
 
 
-
 "use client";
 
 import { useState } from "react";
@@ -198,8 +197,6 @@ import { useRouter } from "next/navigation";
 import { UserInsert } from "../../../../shared/types";
 
 type FormErrors = Record<string, string>;
-
-
 
 export default function RegisterPage() {
   const [firstName, setFirstName] = useState("");
@@ -230,37 +227,32 @@ export default function RegisterPage() {
 
     try {
       // 1️⃣ Skapa auth-user
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-
+      const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
 
-      // 2️⃣ Logga in direkt (KRITISKT för RLS)
+      // 2️⃣ Logga in direkt (behövs för auth-session)
       await supabase.auth.signInWithPassword({ email, password });
 
       const user = data.user;
       if (!user) throw new Error("Ingen användare skapades");
 
-      // 3️⃣ Insert i users
-      const { error: insertError } = await supabase
-        .from("users")
-        .insert<UserInsert>([
-          {
-            id: user.id,
-            email,
-            username,
-            first_name: firstName,
-            last_name: lastName,
-            avatar_url: null,
-            bio: null,
-          },
-        ]);
+      // 3️⃣ Skicka request till server för insert i users (service role key)
+      const res = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: user.id,
+          email,
+          username,
+          first_name: firstName,
+          last_name: lastName,
+        } as UserInsert),
+      });
 
-      if (insertError) throw insertError;
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Något gick fel vid registreringen");
 
-      router.push("/");
+      router.push("/"); // Registrering klar, navigera hem
     } catch (err: any) {
       setErrors({
         general: err.message || "Något gick fel vid registreringen",
@@ -370,4 +362,3 @@ export default function RegisterPage() {
     </div>
   );
 }
-
