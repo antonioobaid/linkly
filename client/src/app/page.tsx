@@ -71,61 +71,40 @@ export default function HomePage() {
 
   // 🔥 AVANCERAD LOGIN
   const handleLogin = async () => {
-    setLoginError(null);
+  setLoginError(null);
 
-    if (!email || !password) {
-      setLoginError("Fyll i både email och lösenord.");
+  if (!email || !password) {
+    setLoginError("Fyll i både email och lösenord.");
+    return;
+  }
+
+  setLoadingLogin(true);
+
+  try {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      if (error.message.includes("Invalid login credentials")) {
+        setLoginError("Fel email eller lösenord.");
+      } else if (error.message.includes("Email not confirmed")) {
+        setLoginError("Din email är inte verifierad. Kolla din inbox.");
+      } else {
+        setLoginError(error.message);
+      }
       return;
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setLoginError("Email ser inte korrekt ut.");
-      return;
-    }
+    router.push("/");
+  } catch {
+    setLoginError("Ett oväntat fel uppstod.");
+  } finally {
+    setLoadingLogin(false);
+  }
+};
 
-    setLoadingLogin(true);
-
-    try {
-      const { data: existingUser, error: userError } = await supabase
-        .from("users")
-        .select("id")
-        .eq("email", email)
-        .maybeSingle();
-
-      if (userError) throw userError;
-
-      if (!existingUser) {
-        setLoginError("Det finns inget konto med denna email. Skapa ett först.");
-        setLoadingLogin(false);
-        return;
-      }
-
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        if (error.message.includes("Invalid login credentials")) {
-          setLoginError("Fel lösenord.");
-        } else if (error.message.includes("Email not confirmed")) {
-          setLoginError("Din email är inte verifierad. Kolla din inbox.");
-        } else {
-          setLoginError(error.message);
-        }
-        setLoadingLogin(false);
-        return;
-      }
-
-      router.push("/");
-    } catch (err: any) {
-      console.error(err);
-      setLoginError("Ett oväntat fel uppstod. Försök igen senare.");
-    } finally {
-      setLoadingLogin(false);
-    }
-  };
 
   if (!isLoaded || loadingPosts)
     return (
