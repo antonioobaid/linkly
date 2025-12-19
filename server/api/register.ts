@@ -28,6 +28,9 @@ router.post("/", async (req, res) => {
 
 export default router;*/
 
+
+
+
 import express from "express";
 import { supabaseServer } from "../lib/supabaseServerClient";
 
@@ -39,7 +42,7 @@ interface UserInsert {
   username: string;
   first_name: string;
   last_name: string;
-  full_name: string;
+  full_name?: string;
   avatar_url?: string | null;
   bio?: string | null;
 }
@@ -51,22 +54,32 @@ router.post("/", async (req, res) => {
     return res.status(400).json({ error: "Fält saknas" });
   }
 
-  const full_name = `${first_name} ${last_name}`;
-
   try {
-    // Insert via Service Role Key
+    const full_name = `${first_name} ${last_name}`;
+
+    // Insert via Service Role Key (ignorerar RLS)
     const { data: insertedUser, error } = await supabaseServer
       .from("users")
-      .insert([
-        { id, email, username, first_name, last_name, full_name, avatar_url: null, bio: null }
-      ])
-      .select(); // returnera insatt data
+      .insert([{
+        id,
+        email,
+        username,
+        first_name,
+        last_name,
+        full_name,
+        avatar_url: null,
+        bio: null,
+      }])
+      .select();
 
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase insert error:", error);
+      return res.status(500).json({ error: error.message });
+    }
 
     return res.status(200).json({ success: true, user: insertedUser });
   } catch (err: any) {
-    console.error(err);
+    console.error("Backend catch error:", err);
     return res.status(500).json({ error: err.message || "Något gick fel" });
   }
 });
