@@ -7,6 +7,7 @@ import { Chat, User, Message } from "../../../../shared/types";
 import { useRouter } from "next/navigation";
 import { FiSearch, FiTrash2 } from "react-icons/fi";
 import Image from "next/image";
+import { API_URL } from "@/lib/api";
 
 export default function InboxPage() {
   const { user, isLoaded } = useSupabaseUser();
@@ -47,18 +48,25 @@ export default function InboxPage() {
         .map((chat) => (chat.user1_id === user.id ? chat.user2_id : chat.user1_id))
         .filter(Boolean);
 
-      if (otherIds.length > 0) {
-        const { data: usersData } = await supabase
-          .from("users")
-          .select("*")
-          .in("id", otherIds);
+     if (otherIds.length > 0) {
+        const map: Record<string, User> = {};
 
-        if (usersData) {
-          const map: Record<string, User> = {};
-          usersData.forEach((u) => (map[u.id] = u));
-          setUsersMap(map);
-        }
+        await Promise.all(
+          otherIds.map(async (id) => {
+            try {
+              const res = await fetch(`${API_URL}/api/users/${id}`);
+              if (!res.ok) return;
+              const userData: User = await res.json();
+              map[id] = userData;
+            } catch (err) {
+              console.error("Kunde inte hämta användare:", err);
+            }
+          })
+        );
+
+        setUsersMap(map);
       }
+
 
       if (chatsData && chatsData.length > 0) {
         const promises = chatsData.map(async (chat) => {

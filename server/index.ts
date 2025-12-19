@@ -13,6 +13,10 @@ import likesRouter from "./api/likes";
 import avatarUploadRouter from "./api/avatarUpload";
 import searchRouter from "./api/search";
 import registerRouter from "./api/register";
+import profileRouter from "./api/profile";
+import chatsRouter from "./api/chats";
+import usersRouter from "./api/users";
+
 
 dotenv.config();
 
@@ -39,6 +43,10 @@ app.use("/api/comments", commentsRouter);
 app.use("/api/likes", likesRouter);
 app.use("/api/avatarUpload", avatarUploadRouter);
 app.use("/api/search", searchRouter);
+app.use("/api/profile", profileRouter);
+app.use("/api/chats", chatsRouter);
+app.use("/api/users", usersRouter);
+
 
 app.get("/healthz", (req, res) => res.status(200).send("OK"));
 

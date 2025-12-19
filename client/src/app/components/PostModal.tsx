@@ -208,85 +208,97 @@ export default function PostModal({
 
           {/* POST CONTENT */}
           {post.content && (
-            <div className="px-4 py-3 text-sm border-b dark:border-gray-700">
-              <strong className="mr-1">{post.username}</strong>
-              {post.content}
+            <div className="px-4 py-3 text-sm border-b dark:border-gray-700 bg-gray-100 dark:bg-gray-800 rounded-t-lg">
+              <strong className="mr-2 text-blue-600">{post.username}</strong>
+              <span className="text-gray-800 dark:text-gray-100">{post.content}</span>
             </div>
           )}
 
-          {/* COMMENTS */}
-          <div className="p-4 flex-1 overflow-y-auto">
-            {comments.map(comment => (
-              <div key={comment.id} className="flex items-start justify-between mb-3">
-                <div className="flex items-start gap-3 text-sm w-full bg-gray-50 dark:bg-gray-800 p-2 rounded-lg">
-                  <div
-                    className="relative w-8 h-8 cursor-pointer"
-                    onClick={e => {
-                      e.stopPropagation();
-                      goToProfile(comment.user_id);
-                    }}
-                  >
-                    <Image
-                      src={comment.avatar_url || "/default-avatar.png"}
-                      alt={comment.username || "okänd"}
-                      fill
-                      sizes="32px"
-                      className="rounded-full object-cover"
-                    />
-                  </div>
-
-                  <div
-                    className="cursor-pointer"
-                    onClick={() => {
-                      if (editId !== comment.id)
-                        goToProfile(comment.user_id);
-                    }}
-                  >
-                    <strong>{comment.username}:</strong>{" "}
-                    {editId === comment.id ? (
-                      <div onClick={e => e.stopPropagation()}>
-                        <input
-                          value={editText}
-                          onChange={e => setEditText(e.target.value)}
-                          className="border p-1 rounded text-sm"
-                        />
-                        <div className="flex gap-2 mt-1">
-                          <button onClick={() => saveEdit(comment.id)}>Spara</button>
-                          <button onClick={() => setEditId(null)}>Avbryt</button>
-                        </div>
-                      </div>
-                    ) : (
-                      comment.content
-                    )}
-                  </div>
-                </div>
-
-                {comment.user_id === user?.id && editId !== comment.id && (
-                  <div className="relative">
-                    <button
-                      onClick={() =>
-                        setOpenMenuId(
-                          openMenuId === comment.id ? null : comment.id
-                        )
-                      }
-                    >
-                      ⋮
-                    </button>
-                    {openMenuId === comment.id && (
-                      <div className="absolute right-0 bg-white border rounded shadow p-2">
-                        <button onClick={() => startEdit(comment)}>
-                          Redigera
-                        </button>
-                        <button onClick={() => deleteComment(comment.id)}>
-                          Ta bort
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
+         {/* COMMENTS */}
+<div className="p-4 flex-1 overflow-y-auto space-y-3">
+  {comments.map(comment => (
+    <div key={comment.id} className="flex items-start justify-between">
+      <div className="flex items-start gap-3 w-full">
+        {/* Avatar + username klickbar */}
+        <div
+          className="flex items-center gap-2 cursor-pointer"
+          onClick={() => goToProfile(comment.user_id)}
+        >
+          <div className="relative w-8 h-8 flex-shrink-0">
+            <Image
+              src={comment.avatar_url || "/default-avatar.png"}
+              alt={comment.username || "okänd"}
+              fill
+              sizes="32px"
+              className="rounded-full object-cover"
+            />
           </div>
+          <strong className="text-blue-600">{comment.username}</strong>
+        </div>
+
+        {/* Comment text */}
+        <div className="flex-1 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg relative group">
+          {editId === comment.id ? (
+            <div>
+              <input
+                value={editText}
+                onChange={e => setEditText(e.target.value)}
+                className="border p-1 rounded w-full text-sm"
+              />
+              <div className="flex gap-2 mt-1">
+                <button
+                  onClick={() => saveEdit(comment.id)}
+                  className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs"
+                >
+                  Spara
+                </button>
+                <button
+                  onClick={() => setEditId(null)}
+                  className="px-2 py-1 bg-gray-300 dark:bg-gray-600 text-black dark:text-white rounded hover:bg-gray-400 text-xs"
+                >
+                  Avbryt
+                </button>
+              </div>
+            </div>
+          ) : (
+            <span>{comment.content}</span>
+          )}
+
+          {/* Dropdown meny för ägare */}
+          {comment.user_id === user?.id && editId !== comment.id && (
+            <div className="absolute top-1 right-1">
+              <button
+                onClick={() =>
+                  setOpenMenuId(openMenuId === comment.id ? null : comment.id)
+                }
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 focus:outline-none"
+              >
+                ⋮
+              </button>
+              {openMenuId === comment.id && (
+                <div className="absolute right-0 mt-2 w-28 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-10">
+                  <button
+                    onClick={() => startEdit(comment)}
+                    className="block w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    ✏️ Redigera
+                  </button>
+                  <button
+                    onClick={() => deleteComment(comment.id)}
+                    className="block w-full text-left px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-700"
+                  >
+                    🗑️ Ta bort
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  ))}
+</div>
+
 
           {/* COMMENT SECTION */}
           {user && (
