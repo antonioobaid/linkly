@@ -39,6 +39,7 @@ interface UserInsert {
   username: string;
   first_name: string;
   last_name: string;
+  full_name: string;
   avatar_url?: string | null;
   bio?: string | null;
 }
@@ -50,21 +51,20 @@ router.post("/", async (req, res) => {
     return res.status(400).json({ error: "Fält saknas" });
   }
 
+  const full_name = `${first_name} ${last_name}`;
+
   try {
-    // Insert i users-tabellen via Service Role Key (ignorerar RLS)
+    // Insert via Service Role Key
     const { data: insertedUser, error } = await supabaseServer
       .from("users")
-      .insert([{ id, email, username, first_name, last_name, avatar_url: null, bio: null }])
-      .select(); // select() för att få JSON tillbaka
+      .insert([
+        { id, email, username, first_name, last_name, full_name, avatar_url: null, bio: null }
+      ])
+      .select(); // returnera insatt data
 
     if (error) throw error;
 
-    // Skicka ett meddelande om verifiering krävs
-    return res.status(200).json({
-      success: true,
-      message: "Kontot är skapat! Bekräfta din email innan du loggar in.",
-      user: insertedUser,
-    });
+    return res.status(200).json({ success: true, user: insertedUser });
   } catch (err: any) {
     console.error(err);
     return res.status(500).json({ error: err.message || "Något gick fel" });
