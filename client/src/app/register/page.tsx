@@ -240,11 +240,9 @@ export default function RegisterPage() {
       if (error) throw error;
 
       const user = data.user;
-      if (!user) {
-        throw new Error("Verifiera din e-post först innan du loggar in");
-      }
+      if (!user) throw new Error("Kunde inte skapa användare. Kontrollera backend.");
 
-      // 2️⃣ Insert i users-tabellen via backend
+      // 2️⃣ Insert i users-tabellen via backend (Service Role Key)
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -260,11 +258,11 @@ export default function RegisterPage() {
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "Något gick fel vid registreringen");
 
-      // 3️⃣ Direkt login
+      // 3️⃣ Direkt login utan email-verifiering
       const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
       if (loginError) throw loginError;
 
-      router.push("/"); // Registrering klar
+      router.push("/"); // Navigera hem efter login
     } catch (err: any) {
       setErrors({ general: err.message || "Något gick fel" });
     } finally {

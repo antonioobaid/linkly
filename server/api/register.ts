@@ -53,10 +53,11 @@ router.post("/", async (req, res) => {
   }
 
   try {
+    // Insert via Service Role Key (ignorerar RLS)
     const { data: insertedUser, error } = await supabaseServer
       .from("users")
       .insert([{ id, email, username, first_name, last_name, avatar_url: null, bio: null }])
-      .select(); // ← select() för att få JSON tillbaka
+      .select(); // select() för att få JSON tillbaka
 
     if (error) throw error;
 
