@@ -81,7 +81,8 @@ export default function HomePage() {
   setLoadingLogin(true);
 
   try {
-    const { error } = await supabase.auth.signInWithPassword({
+    // Logga in med Supabase
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -97,7 +98,23 @@ export default function HomePage() {
       return;
     }
 
+    // Kontrollera om email är verifierad
+    const session = data.session;
+    const user = data.user;
+
+    if (!user || !session) {
+      setLoginError("Kunde inte logga in. Kontrollera dina uppgifter.");
+      return;
+    }
+
+    if (!user.confirmed_at) {
+      setLoginError("Din email är inte verifierad. Kontrollera din inbox.");
+      return;
+    }
+
+    // Om verifierad, navigera till homepage
     router.push("/");
+
   } catch {
     setLoginError("Ett oväntat fel uppstod.");
   } finally {

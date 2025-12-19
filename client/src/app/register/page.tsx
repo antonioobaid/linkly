@@ -190,7 +190,6 @@ export default function RegisterPage() {
 
 
 
-
 "use client";
 
 import { useState } from "react";
@@ -235,7 +234,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      // 1️⃣ Skapa auth user
+      // 1️⃣ Skapa auth-user
       const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
 
@@ -258,11 +257,12 @@ export default function RegisterPage() {
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "Något gick fel vid registreringen");
 
-      // 3️⃣ Direkt login utan email-verifiering
-      const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
-      if (loginError) throw loginError;
+      // 3️⃣ Visa meddelande istället för att logga in direkt
+      alert(result.message || "Kontot är skapat! Bekräfta din email innan du loggar in.");
 
-      router.push("/"); // Navigera hem efter login
+      // Navigera till login-sidan
+      router.push("/");
+
     } catch (err: any) {
       setErrors({ general: err.message || "Något gick fel" });
     } finally {

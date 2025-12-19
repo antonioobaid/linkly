@@ -28,8 +28,6 @@ router.post("/", async (req, res) => {
 
 export default router;*/
 
-
-
 import express from "express";
 import { supabaseServer } from "../lib/supabaseServerClient";
 
@@ -53,7 +51,7 @@ router.post("/", async (req, res) => {
   }
 
   try {
-    // Insert via Service Role Key (ignorerar RLS)
+    // Insert i users-tabellen via Service Role Key (ignorerar RLS)
     const { data: insertedUser, error } = await supabaseServer
       .from("users")
       .insert([{ id, email, username, first_name, last_name, avatar_url: null, bio: null }])
@@ -61,7 +59,12 @@ router.post("/", async (req, res) => {
 
     if (error) throw error;
 
-    return res.status(200).json({ success: true, user: insertedUser });
+    // Skicka ett meddelande om verifiering krävs
+    return res.status(200).json({
+      success: true,
+      message: "Kontot är skapat! Bekräfta din email innan du loggar in.",
+      user: insertedUser,
+    });
   } catch (err: any) {
     console.error(err);
     return res.status(500).json({ error: err.message || "Något gick fel" });
@@ -69,4 +72,3 @@ router.post("/", async (req, res) => {
 });
 
 export default router;
-
