@@ -20,7 +20,6 @@ router.get("/:postId", async (req, res) => {
 
     if (likesError) throw likesError;
 
-    console.log("LIKES RAW:", likes);
 
     if (!likes || likes.length === 0) {
       return res.status(200).json({ count: 0, users: [] });
@@ -36,7 +35,7 @@ router.get("/:postId", async (req, res) => {
 
     if (usersError) throw usersError;
 
-    console.log("USERS FROM LIKES:", users);
+  
 
     const formattedUsers = users.map((u) => ({
       id: u.id,
